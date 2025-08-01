@@ -28,7 +28,9 @@ local function initializeServices()
         Sell_Inventory = GameEvents.Sell_Inventory,
         Favorite_Item = GameEvents.Favorite_Item,
         SellPet_RE = GameEvents.SellPet_RE,
-        Notification = GameEvents:WaitForChild("Notification", 15)
+        Notification = GameEvents:WaitForChild("Notification", 15),
+        DeleteObject = GameEvents:WaitForChild("DeleteObject", 15), -- Added for sprinkler deletion
+        RemoveItem = GameEvents:WaitForChild("RemoveItem", 15) -- Added for sprinkler deletion
     }
 end
 
@@ -57,6 +59,7 @@ end
 
 local CoreFunctions = {}
 function CoreFunctions.autoEquipShovel()
+    local LocalPlayer = game:GetService("Players").LocalPlayer
     local shovelName = "Shovel [Destroy Plants]"
     local shovel = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild(shovelName)
     if not shovel then
@@ -96,6 +99,10 @@ function CoreFunctions.deleteAllSprinklers(services, tables)
         return
     end
     local shovelClient = shovel:FindFirstChild("MainScript") or shovel:FindFirstChildWhichIsA("Script") or shovel:FindFirstChildWhichIsA("LocalScript")
+    if not shovelClient then
+        sendNotification(services, "Shovel client script not found!", "#b0171a")
+        return
+    end
     _G.shovelClient = shovelClient
     _G.objectsFolder = objectsFolder
     CoreFunctions.setSelectedSprinklers(tables.sprinklerTypes)
@@ -104,7 +111,7 @@ function CoreFunctions.deleteAllSprinklers(services, tables)
 end
 
 function CoreFunctions.deleteSprinklers(sprinklerArray, services)
-    local targetSprinklers = sprinklerArray or _G.selectedSprinklers
+    local targetSprinklers = sprinklerArray or _G.selectedSprinklers or {}
     if #targetSprinklers == 0 then
         sendNotification(services, "No sprinklers selected!", "#b0171a")
         return
@@ -147,6 +154,7 @@ end
 
 function CoreFunctions.getSprinklerTypes(tables) return tables.sprinklerTypes end
 function CoreFunctions.addSprinklerToSelection(sprinklerName)
+    if not _G.selectedSprinklers then _G.selectedSprinklers = {} end
     for i, sprinkler in ipairs(_G.selectedSprinklers) do
         if sprinkler == sprinklerName then return false end
     end
@@ -154,6 +162,7 @@ function CoreFunctions.addSprinklerToSelection(sprinklerName)
     return true
 end
 function CoreFunctions.removeSprinklerFromSelection(sprinklerName)
+    if not _G.selectedSprinklers then _G.selectedSprinklers = {} end
     for i, sprinkler in ipairs(_G.selectedSprinklers) do
         if sprinkler == sprinklerName then
             table.remove(_G.selectedSprinklers, i)
@@ -165,17 +174,14 @@ end
 function CoreFunctions.setSelectedSprinklers(sprinklerArray)
     _G.selectedSprinklers = sprinklerArray or {}
 end
-function CoreFunctions.getSelectedSprinklers() return _G.selectedSprinklers end
+function CoreFunctions.getSelectedSprinklers() return _G.selectedSprinklers or {} end
 function CoreFunctions.clearSelectedSprinklers() _G.selectedSprinklers = {} end
 function CoreFunctions.isSprinklerSelected(sprinklerName)
-    for _, sprinkler in ipairs(_G.selectedSprinklers) do
-        if sprinkler == sprinklerName then return true end
-    end
-    return false
+    return _G.selectedSprinklers and table.find(_G.selectedSprinklers, sprinklerName) ~= nil
 end
-function CoreFunctions.getSelectedSprinklersCount() return #_G.selectedSprinklers end
+function CoreFunctions.getSelectedSprinklersCount() return #(_G.selectedSprinklers or {}) end
 function CoreFunctions.getSelectedSprinklersString()
-    if #_G.selectedSprinklers == 0 then return "None" end
+    if not _G.selectedSprinklers or #_G.selectedSprinklers == 0 then return "None" end
     local selectionText = table.concat(_G.selectedSprinklers, ", ")
     return #selectionText > 50 and (selectionText:sub(1, 47) .. "...") or selectionText
 end
@@ -769,9 +775,12 @@ end
 local function saveSettings(settings)
     local HttpService = game:GetService("HttpService")
     local SETTINGS_FILE = "DEMONHUB_Settings.json"
-    pcall(function()
+    local success, err = pcall(function()
         writefile(SETTINGS_FILE, HttpService:JSONEncode(settings))
     end)
+    if not success then
+        warn("Failed to save settings: " .. (err or "Unknown error"))
+    end
 end
 
 local function loadSettings(tables)
