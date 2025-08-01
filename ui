@@ -113,7 +113,7 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         Type = "Checkbox",
         Callback = function(value)
             settings.autoMiddleActive = value
-            if settings.autoMiddleActive and #settings.selectedPets > 0 and services and services.ActivePetService then
+            if settings.autoMiddleActive and #settings.selectedPets > 0 then
                 functions.startCoroutine("AutoMiddle", function()
                     while coroutines.AutoMiddle and coroutines.AutoMiddle.running and #settings.selectedPets > 0 do
                         for _, petId in ipairs(settings.selectedPets) do
@@ -141,7 +141,7 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         AllowNone = true,
         Callback = function(value)
             settings.SelectedSellPet = value == "All" and nil or value
-            if settings.autoSellPetsActive and not settings.SelectedSellPet and #settings.selectedPets == 0 then
+            if settings.autoSellPetsActive and not settings.SelectedSellPet then
                 functions.stopCoroutine("AutoSellPets", coroutines)
                 settings.autoSellPetsActive = false
             end
@@ -182,7 +182,6 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
             local num = tonumber(value)
             if num and num >= 1 and num <= 60 then
                 settings.SellPetDelay = num
-                functions.sendNotification(services, "Sell pets delay updated!", "#008000")
                 functions.saveSettings(settings)
             else
                 functions.sendNotification(services, "Invalid delay! Enter a number between 1 and 60.", "#b0171a")
@@ -197,7 +196,7 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         Type = "Checkbox",
         Callback = function(value)
             settings.autoSellPetsActive = value
-            if settings.autoSellPetsActive and services and services.SellPet_RE then
+            if settings.autoSellPetsActive then
                 functions.startCoroutine("AutoSellPets", function()
                     while coroutines.AutoSellPets and coroutines.AutoSellPets.running do
                         local soldCount = functions.sellPets(services, settings, tables)
@@ -292,7 +291,7 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         Type = "Checkbox",
         Callback = function(value)
             settings.autoHatchEggsActive = value
-            if settings.autoHatchEggsActive and #settings.selectedEggs > 0 and services and services.ReplicatedStorage then
+            if settings.autoHatchEggsActive and #settings.selectedEggs > 0 and settings.selectedEggAction == "Hatch" then
                 functions.startCoroutine("AutoHatchEggs", function()
                     local character = services.LocalPlayer.Character
                     if not character or not character:FindFirstChild("HumanoidRootPart") then
@@ -361,7 +360,7 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         Type = "Checkbox",
         Callback = function(value)
             settings.autoPlantEggsActive = value
-            if settings.autoPlantEggsActive and #settings.selectedEggs > 0 and services and services.ReplicatedStorage then
+            if settings.autoPlantEggsActive and #settings.selectedEggs > 0 and settings.selectedEggAction == "Plant" then
                 functions.startCoroutine("AutoPlantEggs", function()
                     local character = services.LocalPlayer.Character
                     if not character or not character:FindFirstChild("Humanoid") then
@@ -512,7 +511,7 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         Type = "Checkbox",
         Callback = function(value)
             settings.autoBuyEggsActive = value
-            if settings.autoBuyEggsActive and #settings.selectedEggs > 0 and services and services.BuyPetEgg then
+            if settings.autoBuyEggsActive and #settings.selectedEggs > 0 then
                 functions.startCoroutine("AutoBuyEggs", function()
                     while coroutines.AutoBuyEggs and coroutines.AutoBuyEggs.running do
                         for _, egg in ipairs(settings.selectedEggs) do
@@ -541,7 +540,7 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         Type = "Checkbox",
         Callback = function(value)
             settings.autoBuySeedsActive = value
-            if settings.autoBuySeedsActive and #settings.selectedSeeds > 0 and services and services.BuySeedStock then
+            if settings.autoBuySeedsActive and #settings.selectedSeeds > 0 then
                 functions.startCoroutine("AutoBuySeeds", function()
                     while coroutines.AutoBuySeeds and coroutines.AutoBuySeeds.running do
                         for _, seed in ipairs(settings.selectedSeeds) do
@@ -570,7 +569,7 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         Type = "Checkbox",
         Callback = function(value)
             settings.autoBuyGearActive = value
-            if settings.autoBuyGearActive and #settings.selectedGears > 0 and services and services.BuyGearStock then
+            if settings.autoBuyGearActive and #settings.selectedGears > 0 then
                 functions.startCoroutine("AutoBuyGear", function()
                     while coroutines.AutoBuyGear and coroutines.AutoBuyGear.running do
                         for _, gear in ipairs(settings.selectedGears) do
@@ -672,7 +671,7 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         Type = "Checkbox",
         Callback = function(value)
             settings.autoPlantActive = value
-            if settings.autoPlantActive and services and services.Plant_RE then
+            if settings.autoPlantActive then
                 if not functions.equipSeed(settings.selectedSeed, services) then
                     settings.autoPlantActive = false
                     functions.saveSettings(settings)
@@ -738,7 +737,7 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
     })
 
     Tabs.HarvestingTab:Slider({
-        Title = "Min Fruit Weight (kg)",
+        Title = "Minimum Fruit Weight (kg)",
         Value = {
             Min = 0,
             Max = 100,
@@ -750,19 +749,6 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         end
     })
 
-    Tabs.HarvestingTab:Slider({
-        Title = "Harvest Delay (ms)",
-        Value = {
-            Min = 1,
-            Max = 1000,
-            Default = settings.HarvestDelay * 1000,
-        },
-        Callback = function(value)
-            settings.HarvestDelay = value / 1000
-            functions.saveSettings(settings)
-        end
-    })
-
     Tabs.HarvestingTab:Toggle({
         Title = "Auto Harvest",
         Icon = "apple",
@@ -770,26 +756,14 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         Type = "Checkbox",
         Callback = function(value)
             settings.autoHarvestActive = value
-            if settings.autoHarvestActive and services and services.LocalPlayer.Character then
+            if settings.autoHarvestActive then
                 functions.startCoroutine("AutoHarvest", function()
                     while coroutines.AutoHarvest and coroutines.AutoHarvest.running do
                         local plants = functions.GetHarvestablePlants(services, tables, settings)
                         for _, plant in ipairs(plants) do
-                            local humanoidRootPart = services.LocalPlayer.Character and services.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-                            if not humanoidRootPart then
-                                functions.sendNotification(services, "Character not found for harvesting!", "#b0171a")
-                                settings.autoHarvestActive = false
-                                break
-                            end
-                            local part = plant:FindFirstChildWhichIsA("BasePart") or plant.PrimaryPart
-                            if part then
-                                humanoidRootPart.CFrame = CFrame.new(part.Position + Vector3.new(0, 3, 0))
-                                wait(0.5)
-                                functions.HarvestPlant(plant, services)
-                            end
-                            wait(settings.HarvestDelay)
+                            functions.HarvestPlant(plant, services)
                         end
-                        wait(1)
+                        wait(settings.HarvestDelay)
                     end
                     settings.autoHarvestActive = false
                 end, coroutines)
@@ -802,13 +776,13 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
     })
 
     local protectedFruitDropdown = Tabs.SellingTab:Dropdown({
-        Title = "Protect Fruits from Selling",
-        Values = tables.allFruits,
+        Title = "Select Protected Fruits",
+        Values = {"All", unpack(tables.allFruits)},
         Value = settings.ProtectedFruits,
         Multi = true,
         AllowNone = true,
         Callback = function(selectedOptions)
-            settings.ProtectedFruits = {}
+            settings.ProtectedFruits = table.find(selectedOptions, "All") and tables.allFruits or {}
             selectedOptions = type(selectedOptions) == "table" and selectedOptions or {selectedOptions}
             for _, fruit in ipairs(selectedOptions) do
                 if table.find(tables.allFruits, fruit) then table.insert(settings.ProtectedFruits, fruit) end
@@ -818,13 +792,13 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
     })
 
     local protectedMutationDropdown = Tabs.SellingTab:Dropdown({
-        Title = "Protect Mutations from Selling",
-        Values = mutationNames,
+        Title = "Select Protected Mutations",
+        Values = {"All", unpack(mutationNames)},
         Value = settings.ProtectedMutations,
         Multi = true,
         AllowNone = true,
         Callback = function(selectedOptions)
-            settings.ProtectedMutations = {}
+            settings.ProtectedMutations = table.find(selectedOptions, "All") and mutationNames or {}
             selectedOptions = type(selectedOptions) == "table" and selectedOptions or {selectedOptions}
             for _, mutation in ipairs(selectedOptions) do
                 if table.find(mutationNames, mutation) then table.insert(settings.ProtectedMutations, mutation) end
@@ -833,14 +807,39 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         end
     })
 
+    Tabs.SellingTab:Button({
+        Title = "Favorite Protected Fruits",
+        Icon = "star",
+        Callback = function()
+            local favoredCount = functions.favoriteFruits(services, settings, tables)
+            if favoredCount > 0 then
+                functions.sendNotification(services, string.format("Favorited %d fruits!", favoredCount), "#008000")
+            else
+                functions.sendNotification(services, "No fruits favorited!", "#b0171a")
+            end
+        end
+    })
+
+    Tabs.SellingTab:Button({
+        Title = "Unfavorite Protected Fruits",
+        Icon = "star-off",
+        Callback = function()
+            local unfavoredCount = functions.unfavoriteFruits(services, settings, tables)
+            if unfavoredCount > 0 then
+                functions.sendNotification(services, string.format("Unfavorited %d fruits!", unfavoredCount), "#008000")
+            else
+                functions.sendNotification(services, "No fruits unfavorited!", "#b0171a")
+            end
+        end
+    })
+
     Tabs.SellingTab:TextBox({
-        Title = "Sell Fruits Delay (min)",
+        Title = "Sell Delay (min)",
         Value = tostring(settings.SellDelay),
         Callback = function(value)
             local num = tonumber(value)
             if num and num >= 1 and num <= 60 then
                 settings.SellDelay = num
-                functions.sendNotification(services, "Sell fruits delay updated!", "#008000")
                 functions.saveSettings(settings)
             else
                 functions.sendNotification(services, "Invalid delay! Enter a number between 1 and 60.", "#b0171a")
@@ -849,40 +848,22 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
     })
 
     Tabs.SellingTab:Toggle({
-        Title = "Auto Sell Fruits",
+        Title = "Auto Sell",
         Icon = "dollar-sign",
         Value = settings.autoSellActive,
         Type = "Checkbox",
         Callback = function(value)
             settings.autoSellActive = value
-            if settings.autoSellActive and services and services.Sell_Inventory and services.LocalPlayer.Character then
+            if settings.autoSellActive then
                 functions.startCoroutine("AutoSell", function()
                     while coroutines.AutoSell and coroutines.AutoSell.running do
-                        local backpack = services.LocalPlayer:FindFirstChild("Backpack")
-                        local character = services.LocalPlayer.Character
-                        if not (backpack and character and character:FindFirstChild("HumanoidRootPart")) then
-                            functions.sendNotification(services, "Cannot sell fruits: Backpack or character missing!", "#b0171a")
-                            settings.autoSellActive = false
-                            break
-                        end
-                        local favoredCount = functions.favoriteFruits(services, settings, tables)
-                        if favoredCount > 0 then
-                            functions.sendNotification(services, string.format("Protected %d fruits from selling!", favoredCount), "#008000")
-                        end
                         local originalPosition = functions.teleportToSellCoordinates(services, tables)
                         if originalPosition then
-                            wait(1)
                             pcall(function()
                                 services.Sell_Inventory:FireServer()
                                 functions.sendNotification(services, "Sold inventory!", "#008000")
                             end)
-                            local unfavoredCount = functions.unfavoriteFruits(services, settings, tables)
-                            if unfavoredCount > 0 then
-                                functions.sendNotification(services, string.format("Unprotected %d fruits!", unfavoredCount), "#008000")
-                            end
                             functions.teleportBack(services, originalPosition)
-                        else
-                            functions.sendNotification(services, "Failed to sell fruits!", "#b0171a")
                         end
                         wait(settings.SellDelay * 60)
                     end
@@ -903,37 +884,42 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         Type = "Checkbox",
         Callback = function(value)
             settings.fruitESPActive = value
-            functions.processPlants(services, tables, settings)
+            if settings.fruitESPActive then
+                functions.startCoroutine("FruitESP", function()
+                    while coroutines.FruitESP and coroutines.FruitESP.running do
+                        functions.processPlants(services, tables, settings)
+                        wait(1)
+                    end
+                end, coroutines)
+            else
+                functions.stopCoroutine("FruitESP", coroutines)
+                local farm = functions.findPlayerFarm(services)
+                if farm then
+                    local plantsFolder = farm:FindFirstChild("Important") and farm.Important:FindFirstChild("Plants_Physical")
+                    if plantsFolder then functions.clearESPs(plantsFolder) end
+                end
+            end
             functions.saveSettings(settings)
         end
     })
 
     Tabs.VisualsTab:Toggle({
         Title = "Pet Cooldown ESP",
-        Icon = "eye",
+        Icon = "clock",
         Value = settings.petCooldownESPActive,
         Type = "Checkbox",
         Callback = function(value)
             settings.petCooldownESPActive = value
-            if settings.petCooldownESPActive and services and services.GetPetCooldown then
+            if settings.petCooldownESPActive then
                 functions.startCoroutine("PetCooldownESP", function()
                     while coroutines.PetCooldownESP and coroutines.PetCooldownESP.running do
-                        pcall(function()
-                            functions.updatePetCooldowns(services, settings, petData, petModelCache)
-                        end)
+                        functions.updatePetCooldowns(services, settings, petData, petModelCache)
                         wait(1)
                     end
-                    settings.petCooldownESPActive = false
                 end, coroutines)
             else
                 functions.stopCoroutine("PetCooldownESP", coroutines)
-                settings.petCooldownESPActive = false
-                if petModelCache then
-                    for petId, _ in pairs(petModelCache) do
-                        petModelCache[petId] = nil
-                    end
-                end
-                functions.updatePetCooldowns(services, settings, petData, petModelCache)
+                functions.cleanupPetCooldownESP({}, petModelCache)
             end
             functions.saveSettings(settings)
         end
@@ -941,42 +927,18 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
 
     local sprinklerDropdown = Tabs.DeleteTab:Dropdown({
         Title = "Select Sprinklers to Delete",
-        Values = tables.sprinklerTypes,
-        Value = functions.CoreFunctions.getSelectedSprinklers(),
+        Values = {"All", unpack(tables.sprinklerTypes)},
+        Value = settings.selectedSprinklers,
         Multi = true,
         AllowNone = true,
         Callback = function(selectedOptions)
-            local newSelection = {}
+            settings.selectedSprinklers = table.find(selectedOptions, "All") and tables.sprinklerTypes or {}
             selectedOptions = type(selectedOptions) == "table" and selectedOptions or {selectedOptions}
             for _, sprinkler in ipairs(selectedOptions) do
-                if table.find(tables.sprinklerTypes, sprinkler) then
-                    functions.CoreFunctions.addSprinklerToSelection(sprinkler)
-                    table.insert(newSelection, sprinkler)
-                end
+                if table.find(tables.sprinklerTypes, sprinkler) then table.insert(settings.selectedSprinklers, sprinkler) end
             end
-            functions.CoreFunctions.setSelectedSprinklers(newSelection)
-            functions.saveSettings(settings)
-        end
-    })
-
-    Tabs.DeleteTab:Toggle({
-        Title = "Auto Delete Sprinklers",
-        Icon = "trash",
-        Value = settings.autoDeleteSprinklersActive,
-        Type = "Checkbox",
-        Callback = function(value)
-            settings.autoDeleteSprinklersActive = value
-            if settings.autoDeleteSprinklersActive and services then
-                functions.startCoroutine("AutoDeleteSprinklers", function()
-                    while coroutines.AutoDeleteSprinklers and coroutines.AutoDeleteSprinklers.running do
-                        pcall(function()
-                            functions.CoreFunctions.deleteSprinklers(functions.CoreFunctions.getSelectedSprinklers(), services)
-                        end)
-                        wait(5)
-                    end
-                    settings.autoDeleteSprinklersActive = false
-                end, coroutines)
-            else
+            _G.selectedSprinklers = settings.selectedSprinklers
+            if settings.autoDeleteSprinklersActive and #settings.selectedSprinklers == 0 then
                 functions.stopCoroutine("AutoDeleteSprinklers", coroutines)
                 settings.autoDeleteSprinklersActive = false
             end
@@ -988,9 +950,30 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         Title = "Delete All Sprinklers",
         Icon = "trash",
         Callback = function()
-            pcall(function()
-                functions.CoreFunctions.deleteAllSprinklers(services, tables)
-            end)
+            functions.CoreFunctions.deleteAllSprinklers(services, tables)
+        end
+    })
+
+    Tabs.DeleteTab:Toggle({
+        Title = "Auto Delete Sprinklers",
+        Icon = "trash",
+        Value = settings.autoDeleteSprinklersActive,
+        Type = "Checkbox",
+        Callback = function(value)
+            settings.autoDeleteSprinklersActive = value
+            if settings.autoDeleteSprinklersActive and #settings.selectedSprinklers > 0 then
+                functions.startCoroutine("AutoDeleteSprinklers", function()
+                    while coroutines.AutoDeleteSprinklers and coroutines.AutoDeleteSprinklers.running do
+                        functions.CoreFunctions.deleteSprinklers(settings.selectedSprinklers, services)
+                        wait(2)
+                    end
+                    settings.autoDeleteSprinklersActive = false
+                end, coroutines)
+            else
+                functions.stopCoroutine("AutoDeleteSprinklers", coroutines)
+                settings.autoDeleteSprinklersActive = false
+            end
+            functions.saveSettings(settings)
         end
     })
 
@@ -1001,27 +984,32 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         Type = "Checkbox",
         Callback = function(value)
             settings.antiIdleActive = value
-            if settings.antiIdleActive and services then
+            if settings.antiIdleActive then
                 functions.startCoroutine("AntiIdle", function()
                     functions.antiAFK(services, coroutines)
                 end, coroutines)
             else
                 functions.stopCoroutine("AntiIdle", coroutines)
-                settings.antiIdleActive = false
             end
             functions.saveSettings(settings)
         end
     })
 
     Tabs.MiscTab:Button({
-        Title = "Destroy UI",
-        Icon = "x",
+        Title = "Save Settings",
+        Icon = "save",
         Callback = function()
-            for name, _ in pairs(coroutines) do
-                functions.stopCoroutine(name, coroutines)
-            end
-            pcall(function() Window:Destroy() end)
-            functions.sendNotification(services, "DEMONHUB UI destroyed!", "#008000")
+            functions.saveSettings(settings)
+            functions.sendNotification(services, "Settings saved!", "#008000")
+        end
+    })
+
+    Tabs.MiscTab:Button({
+        Title = "Load Settings",
+        Icon = "download",
+        Callback = function()
+            settings = functions.loadSettings(tables)
+            functions.sendNotification(services, "Settings loaded!", "#008000")
         end
     })
 
@@ -1029,4 +1017,4 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
     return Window
 end
 
-return { createUI = createUI }
+return createUI
