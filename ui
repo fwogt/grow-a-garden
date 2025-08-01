@@ -113,7 +113,7 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         Type = "Checkbox",
         Callback = function(value)
             settings.autoMiddleActive = value
-            if settings.autoMiddleActive and #settings.selectedPets > 0 then
+            if settings.autoMiddleActive and #settings.selectedPets > 0 and services and services.ActivePetService then
                 functions.startCoroutine("AutoMiddle", function()
                     while coroutines.AutoMiddle and coroutines.AutoMiddle.running and #settings.selectedPets > 0 do
                         for _, petId in ipairs(settings.selectedPets) do
@@ -197,7 +197,7 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         Type = "Checkbox",
         Callback = function(value)
             settings.autoSellPetsActive = value
-            if settings.autoSellPetsActive then
+            if settings.autoSellPetsActive and services and services.SellPet_RE then
                 functions.startCoroutine("AutoSellPets", function()
                     while coroutines.AutoSellPets and coroutines.AutoSellPets.running do
                         local soldCount = functions.sellPets(services, settings, tables)
@@ -292,7 +292,7 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         Type = "Checkbox",
         Callback = function(value)
             settings.autoHatchEggsActive = value
-            if settings.autoHatchEggsActive and #settings.selectedEggs > 0 and settings.selectedEggAction == "Hatch" then
+            if settings.autoHatchEggsActive and #settings.selectedEggs > 0 and services and services.ReplicatedStorage then
                 functions.startCoroutine("AutoHatchEggs", function()
                     local character = services.LocalPlayer.Character
                     if not character or not character:FindFirstChild("HumanoidRootPart") then
@@ -361,7 +361,7 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         Type = "Checkbox",
         Callback = function(value)
             settings.autoPlantEggsActive = value
-            if settings.autoPlantEggsActive and #settings.selectedEggs > 0 and settings.selectedEggAction == "Plant" then
+            if settings.autoPlantEggsActive and #settings.selectedEggs > 0 and services and services.ReplicatedStorage then
                 functions.startCoroutine("AutoPlantEggs", function()
                     local character = services.LocalPlayer.Character
                     if not character or not character:FindFirstChild("Humanoid") then
@@ -512,7 +512,7 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         Type = "Checkbox",
         Callback = function(value)
             settings.autoBuyEggsActive = value
-            if settings.autoBuyEggsActive and #settings.selectedEggs > 0 then
+            if settings.autoBuyEggsActive and #settings.selectedEggs > 0 and services and services.BuyPetEgg then
                 functions.startCoroutine("AutoBuyEggs", function()
                     while coroutines.AutoBuyEggs and coroutines.AutoBuyEggs.running do
                         for _, egg in ipairs(settings.selectedEggs) do
@@ -541,7 +541,7 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         Type = "Checkbox",
         Callback = function(value)
             settings.autoBuySeedsActive = value
-            if settings.autoBuySeedsActive and #settings.selectedSeeds > 0 then
+            if settings.autoBuySeedsActive and #settings.selectedSeeds > 0 and services and services.BuySeedStock then
                 functions.startCoroutine("AutoBuySeeds", function()
                     while coroutines.AutoBuySeeds and coroutines.AutoBuySeeds.running do
                         for _, seed in ipairs(settings.selectedSeeds) do
@@ -570,7 +570,7 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         Type = "Checkbox",
         Callback = function(value)
             settings.autoBuyGearActive = value
-            if settings.autoBuyGearActive and #settings.selectedGears > 0 then
+            if settings.autoBuyGearActive and #settings.selectedGears > 0 and services and services.BuyGearStock then
                 functions.startCoroutine("AutoBuyGear", function()
                     while coroutines.AutoBuyGear and coroutines.AutoBuyGear.running do
                         for _, gear in ipairs(settings.selectedGears) do
@@ -672,7 +672,7 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         Type = "Checkbox",
         Callback = function(value)
             settings.autoPlantActive = value
-            if settings.autoPlantActive then
+            if settings.autoPlantActive and services and services.Plant_RE then
                 if not functions.equipSeed(settings.selectedSeed, services) then
                     settings.autoPlantActive = false
                     functions.saveSettings(settings)
@@ -770,7 +770,7 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         Type = "Checkbox",
         Callback = function(value)
             settings.autoHarvestActive = value
-            if settings.autoHarvestActive then
+            if settings.autoHarvestActive and services and services.LocalPlayer.Character then
                 functions.startCoroutine("AutoHarvest", function()
                     while coroutines.AutoHarvest and coroutines.AutoHarvest.running do
                         local plants = functions.GetHarvestablePlants(services, tables, settings)
@@ -779,7 +779,7 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
                             if not humanoidRootPart then
                                 functions.sendNotification(services, "Character not found for harvesting!", "#b0171a")
                                 settings.autoHarvestActive = false
-                                return
+                                break
                             end
                             local part = plant:FindFirstChildWhichIsA("BasePart") or plant.PrimaryPart
                             if part then
@@ -855,9 +855,16 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         Type = "Checkbox",
         Callback = function(value)
             settings.autoSellActive = value
-            if settings.autoSellActive then
+            if settings.autoSellActive and services and services.Sell_Inventory and services.LocalPlayer.Character then
                 functions.startCoroutine("AutoSell", function()
                     while coroutines.AutoSell and coroutines.AutoSell.running do
+                        local backpack = services.LocalPlayer:FindFirstChild("Backpack")
+                        local character = services.LocalPlayer.Character
+                        if not (backpack and character and character:FindFirstChild("HumanoidRootPart")) then
+                            functions.sendNotification(services, "Cannot sell fruits: Backpack or character missing!", "#b0171a")
+                            settings.autoSellActive = false
+                            break
+                        end
                         local favoredCount = functions.favoriteFruits(services, settings, tables)
                         if favoredCount > 0 then
                             functions.sendNotification(services, string.format("Protected %d fruits from selling!", favoredCount), "#008000")
@@ -908,7 +915,7 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         Type = "Checkbox",
         Callback = function(value)
             settings.petCooldownESPActive = value
-            if settings.petCooldownESPActive then
+            if settings.petCooldownESPActive and services and services.GetPetCooldown then
                 functions.startCoroutine("PetCooldownESP", function()
                     while coroutines.PetCooldownESP and coroutines.PetCooldownESP.running do
                         pcall(function()
@@ -921,6 +928,11 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
             else
                 functions.stopCoroutine("PetCooldownESP", coroutines)
                 settings.petCooldownESPActive = false
+                if petModelCache then
+                    for petId, _ in pairs(petModelCache) do
+                        petModelCache[petId] = nil
+                    end
+                end
                 functions.updatePetCooldowns(services, settings, petData, petModelCache)
             end
             functions.saveSettings(settings)
@@ -954,7 +966,7 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         Type = "Checkbox",
         Callback = function(value)
             settings.autoDeleteSprinklersActive = value
-            if settings.autoDeleteSprinklersActive then
+            if settings.autoDeleteSprinklersActive and services then
                 functions.startCoroutine("AutoDeleteSprinklers", function()
                     while coroutines.AutoDeleteSprinklers and coroutines.AutoDeleteSprinklers.running do
                         pcall(function()
@@ -989,7 +1001,7 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         Type = "Checkbox",
         Callback = function(value)
             settings.antiIdleActive = value
-            if settings.antiIdleActive then
+            if settings.antiIdleActive and services then
                 functions.startCoroutine("AntiIdle", function()
                     functions.antiAFK(services, coroutines)
                 end, coroutines)
