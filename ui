@@ -73,12 +73,13 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
             for _, name in pairs(petData) do
                 if name and name ~= "" then table.insert(petNames, name) end
             end
+            table.sort(petNames)
             if petDropdown then pcall(function() petDropdown:Destroy() end) end
             petNames = #petNames > 0 and petNames or {"[No Pets Found]"}
             petDropdown = Tabs.PetsTab:Dropdown({
                 Title = "Select Pets",
                 Values = petNames,
-                Value = #petNames > 0 and {petNames[1]} or {},
+                Value = {},
                 Multi = true,
                 AllowNone = true,
                 Callback = function(selectedOptions)
@@ -97,11 +98,6 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
                 end
             })
             settings.selectedPets = {}
-            if #petNames > 0 then
-                for petId, petName in pairs(petData) do
-                    if petName == petNames[1] then table.insert(settings.selectedPets, petId) end
-                end
-            end
             functions.saveSettings(settings)
         end
     })
@@ -119,7 +115,7 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
                         for _, petId in ipairs(settings.selectedPets) do
                             pcall(function()
                                 services.ActivePetService:FireServer("SetPetState", petId, "Idle")
-                                functions.sendNotification(services, string.format("Set %s to Idle", petId), "#008000")
+                                functions.sendNotification(services, string.format("Set %s to Idle", petData[petId] or petId), "#008000")
                             end)
                         end
                         wait(0.2)
@@ -137,11 +133,11 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
     local sellPetDropdown = Tabs.PetsTab:Dropdown({
         Title = "Select Pet to Sell",
         Values = {"All", unpack(tables.allPets)},
-        Value = settings.SelectedSellPet,
+        Value = settings.SelectedSellPet or "All",
         AllowNone = true,
         Callback = function(value)
             settings.SelectedSellPet = value == "All" and nil or value
-            if settings.autoSellPetsActive and not settings.SelectedSellPet then
+            if settings.autoSellPetsActive and not settings.SelectedSellPet and value ~= "All" then
                 functions.stopCoroutine("AutoSellPets", coroutines)
                 settings.autoSellPetsActive = false
             end
@@ -202,8 +198,6 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
                         local soldCount = functions.sellPets(services, settings, tables)
                         if soldCount > 0 then
                             functions.sendNotification(services, string.format("Sold %d pets successfully!", soldCount), "#008000")
-                        else
-                            functions.sendNotification(services, "No pets sold!", "#b0171a")
                         end
                         wait(settings.SellPetDelay * 60)
                     end
@@ -219,12 +213,12 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
 
     local eggDropdown = Tabs.EggsTab:Dropdown({
         Title = "Select Eggs",
-        Values = {"All", unpack(tables.eggs)},
+        Values = tables.eggs,
         Value = settings.selectedEggs,
         Multi = true,
         AllowNone = true,
         Callback = function(selectedOptions)
-            settings.selectedEggs = table.find(selectedOptions, "All") and tables.eggs or {}
+            settings.selectedEggs = {}
             selectedOptions = type(selectedOptions) == "table" and selectedOptions or {selectedOptions}
             for _, egg in ipairs(selectedOptions) do
                 if table.find(tables.eggs, egg) then table.insert(settings.selectedEggs, egg) end
@@ -244,7 +238,7 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
     Tabs.EggsTab:Dropdown({
         Title = "Egg Action",
         Values = {"Hatch", "Plant"},
-        Value = settings.selectedEggAction,
+        Value = settings.selectedEggAction or "Hatch",
         Callback = function(value)
             settings.selectedEggAction = value
             if settings.autoHatchEggsActive and settings.selectedEggAction == "Plant" then
@@ -324,9 +318,8 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
                             end
                         end
                         if #eggList == 0 then
-                            functions.sendNotification(services, "No matching eggs found to hatch!", "#b0171a")
-                            settings.autoHatchEggsActive = false
-                            return
+                            wait(1)
+                            continue
                         end
                         for _, egg in ipairs(eggList) do
                             local hitBox = egg:FindFirstChild("HitBox") or egg:FindFirstChildWhichIsA("BasePart")
@@ -412,23 +405,11 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
                             if isValid then table.insert(availableLocations, position) end
                         end
                         if #availableLocations == 0 then
-                            functions.sendNotification(services, "No available locations to plant eggs!", "#b0171a")
                             wait(1)
                             continue
                         end
                         for _, egg in ipairs(settings.selectedEggs) do
-                            local eggTool = nil
-                            for _, item in ipairs(services.LocalPlayer.Backpack:GetChildren()) do
-                                if item:IsA("Tool") and string.find(item.Name, egg, 1, true) then
-                                    eggTool = item
-                                    break
-                                end
-                            end
-                            if not eggTool then
-                                functions.sendNotification(services, string.format("Egg not found: %s", egg), "#b0171a")
-                                continue
-                            end
-                            character.Humanoid:EquipTool(eggTool)
+                            if not functions.equipEgg(egg, services) then continue end
                             local randomIndex = math.random(1, #availableLocations)
                             local position = availableLocations[randomIndex]
                             local success = pcall(function()
@@ -436,6 +417,7 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
                             end)
                             if success then
                                 table.insert(placedEggs, position)
+                                table.remove(availableLocations, randomIndex)
                                 functions.sendNotification(services, string.format("Planted %s egg!", egg), "#008000")
                             end
                             wait(settings.EggPlantDelay)
@@ -454,12 +436,12 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
 
     local eggDropdownPurchases = Tabs.PurchasesTab:Dropdown({
         Title = "Select Eggs to Buy",
-        Values = {"All", unpack(tables.eggs)},
+        Values = tables.eggs,
         Value = settings.selectedEggs,
         Multi = true,
         AllowNone = true,
         Callback = function(selectedOptions)
-            settings.selectedEggs = table.find(selectedOptions, "All") and tables.eggs or {}
+            settings.selectedEggs = {}
             selectedOptions = type(selectedOptions) == "table" and selectedOptions or {selectedOptions}
             for _, egg in ipairs(selectedOptions) do
                 if table.find(tables.eggs, egg) then table.insert(settings.selectedEggs, egg) end
@@ -474,12 +456,12 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
 
     local seedDropdown = Tabs.PurchasesTab:Dropdown({
         Title = "Select Seeds",
-        Values = {"All", unpack(tables.seedShopSeeds)},
+        Values = tables.seedShopSeeds,
         Value = settings.selectedSeeds,
         Multi = true,
         AllowNone = true,
         Callback = function(selectedOptions)
-            settings.selectedSeeds = table.find(selectedOptions, "All") and tables.seedShopSeeds or {}
+            settings.selectedSeeds = {}
             selectedOptions = type(selectedOptions) == "table" and selectedOptions or {selectedOptions}
             for _, seed in ipairs(selectedOptions) do
                 if table.find(tables.seedShopSeeds, seed) then table.insert(settings.selectedSeeds, seed) end
@@ -490,12 +472,12 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
 
     local gearDropdown = Tabs.PurchasesTab:Dropdown({
         Title = "Select Gear",
-        Values = {"All", unpack(tables.gears)},
+        Values = tables.gears,
         Value = settings.selectedGears,
         Multi = true,
         AllowNone = true,
         Callback = function(selectedOptions)
-            settings.selectedGears = table.find(selectedOptions, "All") and tables.gears or {}
+            settings.selectedGears = {}
             selectedOptions = type(selectedOptions) == "table" and selectedOptions or {selectedOptions}
             for _, gear in ipairs(selectedOptions) do
                 if table.find(tables.gears, gear) then table.insert(settings.selectedGears, gear) end
@@ -594,6 +576,7 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
     local seedInventoryDropdown
     local function updateSeedInventoryDropdown()
         local seedInventory = functions.getSeedInventory(services, tables)
+        table.sort(seedInventory)
         if seedInventoryDropdown then pcall(function() seedInventoryDropdown:Destroy() end) end
         seedInventoryDropdown = Tabs.FarmingTab:Dropdown({
             Title = "Select Seed to Plant",
@@ -619,10 +602,12 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
             if settings.autoPlantActive and settings.plantingMode == "Saved Location" and not settings.savedPlantingLocation then
                 functions.stopCoroutine("AutoPlant", coroutines)
                 settings.autoPlantActive = false
+                functions.sendNotification(services, "No saved planting location!", "#b0171a")
             end
             if settings.autoPlantEggsActive and settings.plantingMode == "Saved Location" and not settings.savedPlantingLocation then
                 functions.stopCoroutine("AutoPlantEggs", coroutines)
                 settings.autoPlantEggsActive = false
+                functions.sendNotification(services, "No saved planting location!", "#b0171a")
             end
             functions.saveSettings(settings)
         end
@@ -706,12 +691,12 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
 
     local fruitDropdown = Tabs.HarvestingTab:Dropdown({
         Title = "Select Fruits to Harvest",
-        Values = {"All", unpack(tables.allFruits)},
+        Values = tables.allFruits,
         Value = settings.TargetFruits,
         Multi = true,
         AllowNone = true,
         Callback = function(selectedOptions)
-            settings.TargetFruits = table.find(selectedOptions, "All") and {} or {}
+            settings.TargetFruits = {}
             selectedOptions = type(selectedOptions) == "table" and selectedOptions or {selectedOptions}
             for _, fruit in ipairs(selectedOptions) do
                 if table.find(tables.allFruits, fruit) then table.insert(settings.TargetFruits, fruit) end
@@ -722,12 +707,12 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
 
     local mutationDropdown = Tabs.HarvestingTab:Dropdown({
         Title = "Select Mutations to Harvest",
-        Values = {"All", unpack(mutationNames)},
+        Values = mutationNames,
         Value = settings.TargetMutations,
         Multi = true,
         AllowNone = true,
         Callback = function(selectedOptions)
-            settings.TargetMutations = table.find(selectedOptions, "All") and {} or {}
+            settings.TargetMutations = {}
             selectedOptions = type(selectedOptions) == "table" and selectedOptions or {selectedOptions}
             for _, mutation in ipairs(selectedOptions) do
                 if table.find(mutationNames, mutation) then table.insert(settings.TargetMutations, mutation) end
@@ -762,8 +747,9 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
                         local plants = functions.GetHarvestablePlants(services, tables, settings)
                         for _, plant in ipairs(plants) do
                             functions.HarvestPlant(plant, services)
+                            wait(settings.HarvestDelay)
                         end
-                        wait(settings.HarvestDelay)
+                        wait(0.5)
                     end
                     settings.autoHarvestActive = false
                 end, coroutines)
@@ -777,12 +763,12 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
 
     local protectedFruitDropdown = Tabs.SellingTab:Dropdown({
         Title = "Select Protected Fruits",
-        Values = {"All", unpack(tables.allFruits)},
+        Values = tables.allFruits,
         Value = settings.ProtectedFruits,
         Multi = true,
         AllowNone = true,
         Callback = function(selectedOptions)
-            settings.ProtectedFruits = table.find(selectedOptions, "All") and tables.allFruits or {}
+            settings.ProtectedFruits = {}
             selectedOptions = type(selectedOptions) == "table" and selectedOptions or {selectedOptions}
             for _, fruit in ipairs(selectedOptions) do
                 if table.find(tables.allFruits, fruit) then table.insert(settings.ProtectedFruits, fruit) end
@@ -793,12 +779,12 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
 
     local protectedMutationDropdown = Tabs.SellingTab:Dropdown({
         Title = "Select Protected Mutations",
-        Values = {"All", unpack(mutationNames)},
+        Values = mutationNames,
         Value = settings.ProtectedMutations,
         Multi = true,
         AllowNone = true,
         Callback = function(selectedOptions)
-            settings.ProtectedMutations = table.find(selectedOptions, "All") and mutationNames or {}
+            settings.ProtectedMutations = {}
             selectedOptions = type(selectedOptions) == "table" and selectedOptions or {selectedOptions}
             for _, mutation in ipairs(selectedOptions) do
                 if table.find(mutationNames, mutation) then table.insert(settings.ProtectedMutations, mutation) end
@@ -863,6 +849,7 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
                                 services.Sell_Inventory:FireServer()
                                 functions.sendNotification(services, "Sold inventory!", "#008000")
                             end)
+                            wait(0.5)
                             functions.teleportBack(services, originalPosition)
                         end
                         wait(settings.SellDelay * 60)
@@ -927,12 +914,12 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
 
     local sprinklerDropdown = Tabs.DeleteTab:Dropdown({
         Title = "Select Sprinklers to Delete",
-        Values = {"All", unpack(tables.sprinklerTypes)},
+        Values = tables.sprinklerTypes,
         Value = settings.selectedSprinklers,
         Multi = true,
         AllowNone = true,
         Callback = function(selectedOptions)
-            settings.selectedSprinklers = table.find(selectedOptions, "All") and tables.sprinklerTypes or {}
+            settings.selectedSprinklers = {}
             selectedOptions = type(selectedOptions) == "table" and selectedOptions or {selectedOptions}
             for _, sprinkler in ipairs(selectedOptions) do
                 if table.find(tables.sprinklerTypes, sprinkler) then table.insert(settings.selectedSprinklers, sprinkler) end
@@ -1008,7 +995,21 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         Title = "Load Settings",
         Icon = "download",
         Callback = function()
-            settings = functions.loadSettings(tables)
+            local loadedSettings = functions.loadSettings(tables)
+            for key, value in pairs(loadedSettings) do
+                settings[key] = value
+            end
+            updateSeedInventoryDropdown()
+            eggDropdown:SetValue(settings.selectedEggs)
+            eggDropdownPurchases:SetValue(settings.selectedEggs)
+            seedDropdown:SetValue(settings.selectedSeeds)
+            gearDropdown:SetValue(settings.selectedGears)
+            fruitDropdown:SetValue(settings.TargetFruits)
+            mutationDropdown:SetValue(settings.TargetMutations)
+            protectedFruitDropdown:SetValue(settings.ProtectedFruits)
+            protectedMutationDropdown:SetValue(settings.ProtectedMutations)
+            sprinklerDropdown:SetValue(settings.selectedSprinklers)
+            sellPetDropdown:SetValue(settings.SelectedSellPet or "All")
             functions.sendNotification(services, "Settings loaded!", "#008000")
         end
     })
