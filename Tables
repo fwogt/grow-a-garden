@@ -1,6 +1,8 @@
--- DEMONHUB Tables for Roblox Farming Game
+-- Tables.lua
+-- DEMONHUB Tables Module
 -- Version: 1.0.4
-return {
+
+local Tables = {
     SCRIPT_VERSION = "1.0.4",
     eggs = {
         "Common Egg", "Uncommon Egg", "Rare Egg", "Mythical Egg", "Bug Egg", "Night Egg",
@@ -113,3 +115,5 @@ return {
         PetAgeThreshold = 0
     }
 }
+
+return Tables
