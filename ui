@@ -1,5 +1,5 @@
 -- DEMONHUB UI for Roblox Farming Game
--- Version: 1.0.4
+-- Version: 1.0.4 - Fixed
 local function createUI(tables, functions, services, settings, coroutines, petData, petModelCache)
     local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
     local mutationNames = {}
@@ -21,25 +21,64 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         }
     })
 
+    -- Create tabs with proper structure
     local Tabs = {}
-    Tabs.PetsSection = Window:Section({Title = "Pets", Opened = true})
-    Tabs.PetsTab = Tabs.PetsSection:Tab({Title = "Pets", Icon = "paw-print", Desc = "Manage your pets"})
-    Tabs.EggsTab = Tabs.PetsSection:Tab({Title = "Eggs", Icon = "egg", Desc = "Manage egg hatching and planting"})
-    Tabs.PurchasesSection = Window:Section({Title = "Purchases", Opened = false})
-    Tabs.PurchasesTab = Tabs.PurchasesSection:Tab({Title = "Buy Items", Icon = "shopping-cart", Desc = "Purchase eggs, seeds, and gear"})
-    Tabs.FarmingSection = Window:Section({Title = "Farming", Opened = false})
-    Tabs.FarmingTab = Tabs.FarmingSection:Tab({Title = "Plants", Icon = "sprout", Desc = "Auto planting"})
-    Tabs.HarvestingSection = Window:Section({Title = "Harvesting", Opened = false})
-    Tabs.HarvestingTab = Tabs.HarvestingSection:Tab({Title = "Auto Harvesting", Icon = "apple", Desc = "Auto harvest"})
-    Tabs.SellingSection = Window:Section({Title = "Selling", Opened = false})
-    Tabs.SellingTab = Tabs.SellingSection:Tab({Title = "Auto Selling", Icon = "dollar-sign", Desc = "Sell fruits and pets automatically"})
-    Tabs.VisualsSection = Window:Section({Title = "Visuals", Opened = false})
-    Tabs.VisualsTab = Tabs.VisualsSection:Tab({Title = "ESP Visuals", Icon = "eye", Desc = "Enable ESP"})
-    Tabs.SprinklersSection = Window:Section({Title = "Sprinklers", Opened = false})
-    Tabs.DeleteTab = Tabs.SprinklersSection:Tab({Title = "Delete", Icon = "trash", Desc = "Delete sprinklers"})
-    Tabs.MiscSection = Window:Section({Title = "Miscellaneous", Opened = true})
-    Tabs.MiscTab = Tabs.MiscSection:Tab({Title = "Misc Options", Icon = "settings", Desc = "Additional features"})
+    
+    -- Pets Section
+    Tabs.PetsTab = Window:Tab({
+        Title = "Pets",
+        Icon = "paw-print"
+    })
+    
+    -- Eggs Tab
+    Tabs.EggsTab = Window:Tab({
+        Title = "Eggs", 
+        Icon = "egg"
+    })
+    
+    -- Purchases Tab
+    Tabs.PurchasesTab = Window:Tab({
+        Title = "Purchases",
+        Icon = "shopping-cart"
+    })
+    
+    -- Farming Tab
+    Tabs.FarmingTab = Window:Tab({
+        Title = "Farming",
+        Icon = "sprout"
+    })
+    
+    -- Harvesting Tab
+    Tabs.HarvestingTab = Window:Tab({
+        Title = "Harvesting", 
+        Icon = "apple"
+    })
+    
+    -- Selling Tab
+    Tabs.SellingTab = Window:Tab({
+        Title = "Selling",
+        Icon = "dollar-sign"
+    })
+    
+    -- Visuals Tab
+    Tabs.VisualsTab = Window:Tab({
+        Title = "Visuals",
+        Icon = "eye"
+    })
+    
+    -- Sprinklers Tab
+    Tabs.SprinklersTab = Window:Tab({
+        Title = "Sprinklers",
+        Icon = "droplets"
+    })
+    
+    -- Misc Tab
+    Tabs.MiscTab = Window:Tab({
+        Title = "Misc",
+        Icon = "settings"
+    })
 
+    -- Pet Management Section
     local petDropdown
     local petNames = {"[Click Refresh]"}
     petDropdown = Tabs.PetsTab:Dropdown({
@@ -106,7 +145,6 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         Title = "Auto Middle",
         Icon = "toggle-right",
         Value = settings.autoMiddleActive,
-        Type = "Checkbox",
         Callback = function(value)
             settings.autoMiddleActive = value
             if settings.autoMiddleActive and #settings.selectedPets > 0 then
@@ -171,14 +209,17 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         end
     })
 
-    Tabs.PetsTab:TextBox({
+    -- Replace TextBox with Input for sell pet delay
+    Tabs.PetsTab:Input({
         Title = "Sell Pets Delay (min)",
-        Value = tostring(settings.SellPetDelay),
+        Placeholder = "Enter delay in minutes (1-60)",
+        Text = tostring(settings.SellPetDelay),
         Callback = function(value)
             local num = tonumber(value)
             if num and num >= 1 and num <= 60 then
                 settings.SellPetDelay = num
                 functions.saveSettings(settings)
+                functions.sendNotification(services, "Sell pet delay updated: " .. num .. " minutes", "#008000")
             else
                 functions.sendNotification(services, "Invalid delay! Enter a number between 1 and 60.", "#b0171a")
             end
@@ -189,7 +230,6 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         Title = "Auto Sell Pets",
         Icon = "dollar-sign",
         Value = settings.autoSellPetsActive,
-        Type = "Checkbox",
         Callback = function(value)
             settings.autoSellPetsActive = value
             if settings.autoSellPetsActive then
@@ -211,6 +251,7 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         end
     })
 
+    -- Eggs Tab Content
     local eggDropdown = Tabs.EggsTab:Dropdown({
         Title = "Select Eggs",
         Values = tables.eggs,
@@ -282,7 +323,6 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         Title = "Auto Hatch Eggs",
         Icon = "egg",
         Value = settings.autoHatchEggsActive,
-        Type = "Checkbox",
         Callback = function(value)
             settings.autoHatchEggsActive = value
             if settings.autoHatchEggsActive and #settings.selectedEggs > 0 and settings.selectedEggAction == "Hatch" then
@@ -350,7 +390,6 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         Title = "Auto Plant Eggs",
         Icon = "sprout",
         Value = settings.autoPlantEggsActive,
-        Type = "Checkbox",
         Callback = function(value)
             settings.autoPlantEggsActive = value
             if settings.autoPlantEggsActive and #settings.selectedEggs > 0 and settings.selectedEggAction == "Plant" then
@@ -434,6 +473,7 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         end
     })
 
+    -- Purchases Tab Content
     local eggDropdownPurchases = Tabs.PurchasesTab:Dropdown({
         Title = "Select Eggs to Buy",
         Values = tables.eggs,
@@ -490,7 +530,6 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         Title = "Auto Buy Eggs",
         Icon = "repeat",
         Value = settings.autoBuyEggsActive,
-        Type = "Checkbox",
         Callback = function(value)
             settings.autoBuyEggsActive = value
             if settings.autoBuyEggsActive and #settings.selectedEggs > 0 then
@@ -519,7 +558,6 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         Title = "Auto Buy Seeds",
         Icon = "repeat",
         Value = settings.autoBuySeedsActive,
-        Type = "Checkbox",
         Callback = function(value)
             settings.autoBuySeedsActive = value
             if settings.autoBuySeedsActive and #settings.selectedSeeds > 0 then
@@ -548,7 +586,6 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         Title = "Auto Buy Gear",
         Icon = "repeat",
         Value = settings.autoBuyGearActive,
-        Type = "Checkbox",
         Callback = function(value)
             settings.autoBuyGearActive = value
             if settings.autoBuyGearActive and #settings.selectedGears > 0 then
@@ -573,6 +610,7 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         end
     })
 
+    -- Farming Tab Content
     local seedInventoryDropdown
     local function updateSeedInventoryDropdown()
         local seedInventory = functions.getSeedInventory(services, tables)
@@ -653,7 +691,6 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         Title = "Auto Plant",
         Icon = "sprout",
         Value = settings.autoPlantActive,
-        Type = "Checkbox",
         Callback = function(value)
             settings.autoPlantActive = value
             if settings.autoPlantActive then
@@ -689,6 +726,7 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         end
     })
 
+    -- Harvesting Tab Content
     local fruitDropdown = Tabs.HarvestingTab:Dropdown({
         Title = "Select Fruits to Harvest",
         Values = tables.allFruits,
@@ -738,7 +776,6 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         Title = "Auto Harvest",
         Icon = "apple",
         Value = settings.autoHarvestActive,
-        Type = "Checkbox",
         Callback = function(value)
             settings.autoHarvestActive = value
             if settings.autoHarvestActive then
@@ -761,6 +798,7 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         end
     })
 
+    -- Selling Tab Content
     local protectedFruitDropdown = Tabs.SellingTab:Dropdown({
         Title = "Select Protected Fruits",
         Values = tables.allFruits,
@@ -819,14 +857,17 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         end
     })
 
-    Tabs.SellingTab:TextBox({
+    -- Replace TextBox with Input for sell delay
+    Tabs.SellingTab:Input({
         Title = "Sell Delay (min)",
-        Value = tostring(settings.SellDelay),
+        Placeholder = "Enter delay in minutes (1-60)",
+        Text = tostring(settings.SellDelay),
         Callback = function(value)
             local num = tonumber(value)
             if num and num >= 1 and num <= 60 then
                 settings.SellDelay = num
                 functions.saveSettings(settings)
+                functions.sendNotification(services, "Sell delay updated: " .. num .. " minutes", "#008000")
             else
                 functions.sendNotification(services, "Invalid delay! Enter a number between 1 and 60.", "#b0171a")
             end
@@ -837,7 +878,6 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         Title = "Auto Sell",
         Icon = "dollar-sign",
         Value = settings.autoSellActive,
-        Type = "Checkbox",
         Callback = function(value)
             settings.autoSellActive = value
             if settings.autoSellActive then
@@ -864,11 +904,11 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         end
     })
 
+    -- Visuals Tab Content
     Tabs.VisualsTab:Toggle({
         Title = "Fruit ESP",
         Icon = "eye",
         Value = settings.fruitESPActive,
-        Type = "Checkbox",
         Callback = function(value)
             settings.fruitESPActive = value
             if settings.fruitESPActive then
@@ -894,7 +934,6 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         Title = "Pet Cooldown ESP",
         Icon = "clock",
         Value = settings.petCooldownESPActive,
-        Type = "Checkbox",
         Callback = function(value)
             settings.petCooldownESPActive = value
             if settings.petCooldownESPActive then
@@ -912,7 +951,8 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         end
     })
 
-    local sprinklerDropdown = Tabs.DeleteTab:Dropdown({
+    -- Sprinklers Tab Content
+    local sprinklerDropdown = Tabs.SprinklersTab:Dropdown({
         Title = "Select Sprinklers to Delete",
         Values = tables.sprinklerTypes,
         Value = settings.selectedSprinklers,
@@ -933,7 +973,7 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         end
     })
 
-    Tabs.DeleteTab:Button({
+    Tabs.SprinklersTab:Button({
         Title = "Delete All Sprinklers",
         Icon = "trash",
         Callback = function()
@@ -941,11 +981,10 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         end
     })
 
-    Tabs.DeleteTab:Toggle({
+    Tabs.SprinklersTab:Toggle({
         Title = "Auto Delete Sprinklers",
         Icon = "trash",
         Value = settings.autoDeleteSprinklersActive,
-        Type = "Checkbox",
         Callback = function(value)
             settings.autoDeleteSprinklersActive = value
             if settings.autoDeleteSprinklersActive and #settings.selectedSprinklers > 0 then
@@ -964,11 +1003,11 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         end
     })
 
+    -- Misc Tab Content
     Tabs.MiscTab:Toggle({
         Title = "Anti Idle",
         Icon = "user",
         Value = settings.antiIdleActive,
-        Type = "Checkbox",
         Callback = function(value)
             settings.antiIdleActive = value
             if settings.antiIdleActive then
