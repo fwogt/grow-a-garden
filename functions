@@ -1,6 +1,11 @@
--- DEMONHUB Functions for Roblox Farming Game
+-- Functions.lua
+-- DEMONHUB Functions Module
 -- Version: 1.0.4
-local function initializeServices()
+
+local Functions = {}
+
+-- Initialize Services
+function Functions.initializeServices()
     local ReplicatedStorage = game:GetService("ReplicatedStorage")
     local Players = game:GetService("Players")
     local TweenService = game:GetService("TweenService")
@@ -10,6 +15,7 @@ local function initializeServices()
     local Farms = Workspace.Farm
     local petsPhysical = Workspace:WaitForChild("PetsPhysical", 15)
     local GameEvents = ReplicatedStorage:WaitForChild("GameEvents", 15)
+    
     return {
         ReplicatedStorage = ReplicatedStorage,
         Players = Players,
@@ -28,19 +34,19 @@ local function initializeServices()
         Sell_Inventory = GameEvents.Sell_Inventory,
         Favorite_Item = GameEvents.Favorite_Item,
         SellPet_RE = GameEvents.SellPet_RE,
-        Notification = GameEvents:WaitForChild("Notification", 15),
-        DeleteObject = GameEvents:WaitForChild("DeleteObject", 15), -- Added for sprinkler deletion
-        RemoveItem = GameEvents:WaitForChild("RemoveItem", 15) -- Added for sprinkler deletion
+        Notification = GameEvents:WaitForChild("Notification", 15)
     }
 end
 
-local function sendNotification(services, message, color)
+-- Send Notification
+function Functions.sendNotification(services, message, color)
     pcall(function()
         services.Notification:FireServer(string.format("<font color=\"%s\">%s</font>", color, message))
     end)
 end
 
-local function checkVersion(tables)
+-- Check Version
+function Functions.checkVersion(tables)
     local success, response = pcall(function()
         return game:HttpGet("https://raw.githubusercontent.com/fwogt/robloxv/refs/heads/main/v")
     end)
@@ -57,7 +63,9 @@ local function checkVersion(tables)
     end
 end
 
+-- Core Functions
 local CoreFunctions = {}
+
 function CoreFunctions.autoEquipShovel()
     local LocalPlayer = game:GetService("Players").LocalPlayer
     local shovelName = "Shovel [Destroy Plants]"
@@ -72,9 +80,10 @@ end
 function CoreFunctions.deleteAllSprinklers(services, tables)
     local farmFolder = services.Workspace:FindFirstChild("Farm")
     if not farmFolder then
-        sendNotification(services, "Farm folder not found!", "#b0171a")
+        Functions.sendNotification(services, "Farm folder not found!", "#b0171a")
         return
     end
+    
     local playerFarm
     for _, farm in ipairs(farmFolder:GetChildren()) do
         local ownerData = farm:FindFirstChild("Important") and farm.Important:FindFirstChild("Data") and farm.Important.Data:FindFirstChild("Owner")
@@ -83,55 +92,62 @@ function CoreFunctions.deleteAllSprinklers(services, tables)
             break
         end
     end
+    
     if not playerFarm then
-        sendNotification(services, "Player farm not found!", "#b0171a")
+        Functions.sendNotification(services, "Player farm not found!", "#b0171a")
         return
     end
+    
     local objectsFolder = playerFarm:FindFirstChild("Important") and playerFarm.Important:FindFirstChild("Objects_Physical")
     if not objectsFolder then
-        sendNotification(services, "Objects folder not found!", "#b0171a")
+        Functions.sendNotification(services, "Objects folder not found!", "#b0171a")
         return
     end
+    
     local shovel = CoreFunctions.autoEquipShovel()
     wait(0.5)
     if not shovel then
-        sendNotification(services, "Shovel not equipped!", "#b0171a")
+        Functions.sendNotification(services, "Shovel not equipped!", "#b0171a")
         return
     end
+    
     local shovelClient = shovel:FindFirstChild("MainScript") or shovel:FindFirstChildWhichIsA("Script") or shovel:FindFirstChildWhichIsA("LocalScript")
-    if not shovelClient then
-        sendNotification(services, "Shovel client script not found!", "#b0171a")
-        return
-    end
     _G.shovelClient = shovelClient
     _G.objectsFolder = objectsFolder
+    
     CoreFunctions.setSelectedSprinklers(tables.sprinklerTypes)
     CoreFunctions.deleteSprinklers(tables.sprinklerTypes, services)
-    sendNotification(services, "Deleted all sprinklers successfully!", "#008000")
+    Functions.sendNotification(services, "Deleted all sprinklers successfully!", "#008000")
 end
 
 function CoreFunctions.deleteSprinklers(sprinklerArray, services)
-    local targetSprinklers = sprinklerArray or _G.selectedSprinklers or {}
+    local targetSprinklers = sprinklerArray or _G.selectedSprinklers
     if #targetSprinklers == 0 then
-        sendNotification(services, "No sprinklers selected!", "#b0171a")
+        Functions.sendNotification(services, "No sprinklers selected!", "#b0171a")
         return
     end
-    local shovel = services.LocalPlayer.Character and services.LocalPlayer.Character:FindFirstChild("Shovel [Destroy Plants]")
+    
+    local LocalPlayer = game:GetService("Players").LocalPlayer
+    local shovel = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Shovel [Destroy Plants]")
     if not shovel then
         CoreFunctions.autoEquipShovel()
         wait(0.5)
     end
+    
     if not _G.objectsFolder then
-        sendNotification(services, "Objects folder not initialized!", "#b0171a")
+        Functions.sendNotification(services, "Objects folder not initialized!", "#b0171a")
         return
     end
+    
     local success, destroyEnv = pcall(function()
         return _G.shovelClient and getsenv and getsenv(_G.shovelClient) or nil
     end)
+    
     if not success or not destroyEnv then
-        sendNotification(services, "Failed to access shovel environment!", "#b0171a")
+        Functions.sendNotification(services, "Failed to access shovel environment!", "#b0171a")
         return
     end
+    
     local deletedCount = 0
     for _, obj in ipairs(_G.objectsFolder:GetChildren()) do
         for _, typeName in ipairs(targetSprinklers) do
@@ -149,20 +165,22 @@ function CoreFunctions.deleteSprinklers(sprinklerArray, services)
             end
         end
     end
-    sendNotification(services, string.format("Deleted %d sprinklers successfully!", deletedCount), "#008000")
+    Functions.sendNotification(services, string.format("Deleted %d sprinklers successfully!", deletedCount), "#008000")
 end
 
 function CoreFunctions.getSprinklerTypes(tables) return tables.sprinklerTypes end
+
 function CoreFunctions.addSprinklerToSelection(sprinklerName)
-    if not _G.selectedSprinklers then _G.selectedSprinklers = {} end
+    _G.selectedSprinklers = _G.selectedSprinklers or {}
     for i, sprinkler in ipairs(_G.selectedSprinklers) do
         if sprinkler == sprinklerName then return false end
     end
     table.insert(_G.selectedSprinklers, sprinklerName)
     return true
 end
+
 function CoreFunctions.removeSprinklerFromSelection(sprinklerName)
-    if not _G.selectedSprinklers then _G.selectedSprinklers = {} end
+    _G.selectedSprinklers = _G.selectedSprinklers or {}
     for i, sprinkler in ipairs(_G.selectedSprinklers) do
         if sprinkler == sprinklerName then
             table.remove(_G.selectedSprinklers, i)
@@ -171,26 +189,46 @@ function CoreFunctions.removeSprinklerFromSelection(sprinklerName)
     end
     return false
 end
+
 function CoreFunctions.setSelectedSprinklers(sprinklerArray)
     _G.selectedSprinklers = sprinklerArray or {}
 end
-function CoreFunctions.getSelectedSprinklers() return _G.selectedSprinklers or {} end
-function CoreFunctions.clearSelectedSprinklers() _G.selectedSprinklers = {} end
-function CoreFunctions.isSprinklerSelected(sprinklerName)
-    return _G.selectedSprinklers and table.find(_G.selectedSprinklers, sprinklerName) ~= nil
+
+function CoreFunctions.getSelectedSprinklers() 
+    return _G.selectedSprinklers or {}
 end
-function CoreFunctions.getSelectedSprinklersCount() return #(_G.selectedSprinklers or {}) end
+
+function CoreFunctions.clearSelectedSprinklers() 
+    _G.selectedSprinklers = {}
+end
+
+function CoreFunctions.isSprinklerSelected(sprinklerName)
+    _G.selectedSprinklers = _G.selectedSprinklers or {}
+    for _, sprinkler in ipairs(_G.selectedSprinklers) do
+        if sprinkler == sprinklerName then return true end
+    end
+    return false
+end
+
+function CoreFunctions.getSelectedSprinklersCount() 
+    return #(_G.selectedSprinklers or {})
+end
+
 function CoreFunctions.getSelectedSprinklersString()
-    if not _G.selectedSprinklers or #_G.selectedSprinklers == 0 then return "None" end
-    local selectionText = table.concat(_G.selectedSprinklers, ", ")
+    local selected = _G.selectedSprinklers or {}
+    if #selected == 0 then return "None" end
+    local selectionText = table.concat(selected, ", ")
     return #selectionText > 50 and (selectionText:sub(1, 47) .. "...") or selectionText
 end
 
+Functions.CoreFunctions = CoreFunctions
+
+-- Utility Functions
 local function isValidPetID(id)
     return typeof(id) == "string" and id:match("^%b{}$") ~= nil
 end
 
-local function getPetNames(services)
+function Functions.getPetNames(services)
     local newPetData = {}
     local success = pcall(function()
         local PlayerGui = services.LocalPlayer:WaitForChild("PlayerGui", 5)
@@ -198,6 +236,7 @@ local function getPetNames(services)
         local Frame = ActivePetUI:WaitForChild("Frame", 5)
         local Main = Frame:WaitForChild("Main", 5)
         local ScrollingFrame = Main:WaitForChild("ScrollingFrame", 5)
+        
         for _, frame in pairs(ScrollingFrame:GetChildren()) do
             if frame:IsA("Frame") and isValidPetID(frame.Name) then
                 local petTypeLabel = frame:FindFirstChild("PET_TYPE")
@@ -210,19 +249,21 @@ local function getPetNames(services)
             end
         end
     end)
+    
     if not success then
-        sendNotification(services, "Failed to retrieve pet names!", "#b0171a")
+        Functions.sendNotification(services, "Failed to retrieve pet names!", "#b0171a")
     end
     return newPetData
 end
 
-local function getSeedInventory(services, tables)
+function Functions.getSeedInventory(services, tables)
     local seedInventory = {}
     local backpack = services.LocalPlayer:FindFirstChild("Backpack")
     if not backpack then
-        sendNotification(services, "Backpack not found!", "#b0171a")
+        Functions.sendNotification(services, "Backpack not found!", "#b0171a")
         return seedInventory
     end
+    
     for _, tool in ipairs(backpack:GetChildren()) do
         if tool:IsA("Tool") and tool.Name:match("Seed") then
             local seedName = tool.Name:match("^(.+) Seed") or tool.Name
@@ -234,43 +275,45 @@ local function getSeedInventory(services, tables)
     return seedInventory
 end
 
-local function equipSeed(seedName, services)
+function Functions.equipSeed(seedName, services)
     local backpack = services.LocalPlayer:FindFirstChild("Backpack")
     local character = services.LocalPlayer.Character
     if not (backpack and character and character:FindFirstChild("Humanoid")) then
-        sendNotification(services, "Cannot equip seed: Character or backpack missing!", "#b0171a")
+        Functions.sendNotification(services, "Cannot equip seed: Character or backpack missing!", "#b0171a")
         return false
     end
+    
     for _, tool in ipairs(backpack:GetChildren()) do
         if tool:IsA("Tool") and (tool.Name:match(seedName .. " Seed") or tool.Name == seedName) then
             character.Humanoid:EquipTool(tool)
-            sendNotification(services, string.format("Equipped seed: %s", seedName), "#008000")
+            Functions.sendNotification(services, string.format("Equipped seed: %s", seedName), "#008000")
             return true
         end
     end
-    sendNotification(services, string.format("Seed not found: %s", seedName), "#b0171a")
+    Functions.sendNotification(services, string.format("Seed not found: %s", seedName), "#b0171a")
     return false
 end
 
-local function equipEgg(eggName, services)
+function Functions.equipEgg(eggName, services)
     local backpack = services.LocalPlayer:FindFirstChild("Backpack")
     local character = services.LocalPlayer.Character
     if not (backpack and character and character:FindFirstChild("Humanoid")) then
-        sendNotification(services, "Cannot equip egg: Character or backpack missing!", "#b0171a")
+        Functions.sendNotification(services, "Cannot equip egg: Character or backpack missing!", "#b0171a")
         return false
     end
+    
     for _, tool in ipairs(backpack:GetChildren()) do
         if tool:IsA("Tool") and tool.Name == eggName then
             character.Humanoid:EquipTool(tool)
-            sendNotification(services, string.format("Equipped egg: %s", eggName), "#008000")
+            Functions.sendNotification(services, string.format("Equipped egg: %s", eggName), "#008000")
             return true
         end
     end
-    sendNotification(services, string.format("Egg not found: %s", eggName), "#b0171a")
+    Functions.sendNotification(services, string.format("Egg not found: %s", eggName), "#b0171a")
     return false
 end
 
-local function getPlantMutations(plant, tables)
+function Functions.getPlantMutations(plant, tables)
     local mutationList = {}
     for mutation, _ in pairs(tables.Mutations) do
         if plant:GetAttribute(mutation) == true then
@@ -280,14 +323,14 @@ local function getPlantMutations(plant, tables)
     return mutationList
 end
 
-local function findPlayerFarm(services)
+function Functions.findPlayerFarm(services)
     for _, farm in ipairs(services.Farms:GetChildren()) do
         local ownerValue = farm:FindFirstChild("Important") and farm.Important:FindFirstChild("Data") and farm.Important.Data:FindFirstChild("Owner")
         if ownerValue and ownerValue:IsA("StringValue") and ownerValue.Value == services.LocalPlayer.Name then
             return farm
         end
     end
-    sendNotification(services, "Player farm not found!", "#b0171a")
+    Functions.sendNotification(services, "Player farm not found!", "#b0171a")
     return nil
 end
 
@@ -308,10 +351,12 @@ local function IsTargetPlant(Plant, tables, settings)
         end
         if not isTargetFruit then return false end
     end
+    
     local weightValue = Plant:FindFirstChild("Weight")
     if not (weightValue and weightValue:IsA("NumberValue") and weightValue.Value >= settings.MinimumWeight) then return false end
+    
     if #settings.TargetMutations > 0 then
-        local mutations = getPlantMutations(Plant, tables)
+        local mutations = Functions.getPlantMutations(Plant, tables)
         for _, targetMutation in ipairs(settings.TargetMutations) do
             if table.find(mutations, targetMutation) then return true end
         end
@@ -329,24 +374,25 @@ local function CollectHarvestable(Parent, Plants, tables, settings)
     return Plants
 end
 
-local function GetHarvestablePlants(services, tables, settings)
+function Functions.GetHarvestablePlants(services, tables, settings)
     local Plants = {}
-    local MyFarm = findPlayerFarm(services)
+    local MyFarm = Functions.findPlayerFarm(services)
     if not MyFarm then return Plants end
+    
     local PlantsPhysical = MyFarm:FindFirstChild("Important") and MyFarm.Important:FindFirstChild("Plants_Physical")
     if not PlantsPhysical then
-        sendNotification(services, "Plants folder not found!", "#b0171a")
+        Functions.sendNotification(services, "Plants folder not found!", "#b0171a")
         return Plants
     end
     return CollectHarvestable(PlantsPhysical, Plants, tables, settings)
 end
 
-local function HarvestPlant(Plant, services)
+function Functions.HarvestPlant(Plant, services)
     local Prompt = Plant:FindFirstChild("ProximityPrompt", true)
     if Prompt then
         pcall(function()
             fireproximityprompt(Prompt)
-            sendNotification(services, string.format("Harvested %s", Plant.Name), "#008000")
+            Functions.sendNotification(services, string.format("Harvested %s", Plant.Name), "#008000")
         end)
     end
 end
@@ -365,6 +411,7 @@ local function hasProtectedFruitOrMutation(item, settings, tables)
         end
     end
     if isFruitTypeProtected then return true end
+    
     for _, mutation in ipairs(settings.ProtectedMutations) do
         if tables.Mutations[mutation] and itemNameLower:find(mutation:lower()) then
             return true
@@ -373,12 +420,13 @@ local function hasProtectedFruitOrMutation(item, settings, tables)
     return false
 end
 
-local function favoriteFruits(services, settings, tables)
+function Functions.favoriteFruits(services, settings, tables)
     local backpack = services.LocalPlayer:FindFirstChild("Backpack")
     if not backpack then
-        sendNotification(services, "Backpack not found!", "#b0171a")
+        Functions.sendNotification(services, "Backpack not found!", "#b0171a")
         return 0
     end
+    
     local favoredCount = 0
     for _, item in ipairs(backpack:GetChildren()) do
         if item:IsA("Tool") and isFruit(item) and hasProtectedFruitOrMutation(item, settings, tables) then
@@ -391,12 +439,13 @@ local function favoriteFruits(services, settings, tables)
     return favoredCount
 end
 
-local function unfavoriteFruits(services, settings, tables)
+function Functions.unfavoriteFruits(services, settings, tables)
     local backpack = services.LocalPlayer:FindFirstChild("Backpack")
     if not backpack then
-        sendNotification(services, "Backpack not found!", "#b0171a")
+        Functions.sendNotification(services, "Backpack not found!", "#b0171a")
         return 0
     end
+    
     local unfavoredCount = 0
     for _, item in ipairs(backpack:GetChildren()) do
         if item:IsA("Tool") and isFruit(item) and hasProtectedFruitOrMutation(item, settings, tables) then
@@ -421,13 +470,14 @@ local function parsePetInfo(toolName)
     return petName, weight, age
 end
 
-local function sellPets(services, settings, tables)
+function Functions.sellPets(services, settings, tables)
     local backpack = services.LocalPlayer:FindFirstChild("Backpack")
     local character = services.LocalPlayer.Character
     if not (backpack and character and character:FindFirstChild("Humanoid")) then
-        sendNotification(services, "Cannot sell pets: Character or backpack missing!", "#b0171a")
+        Functions.sendNotification(services, "Cannot sell pets: Character or backpack missing!", "#b0171a")
         return 0
     end
+    
     local soldCount = 0
     for _, tool in ipairs(backpack:GetChildren()) do
         if tool:IsA("Tool") then
@@ -461,34 +511,34 @@ local function sellPets(services, settings, tables)
     return soldCount
 end
 
-local function teleportToSellCoordinates(services, tables)
+function Functions.teleportToSellCoordinates(services, tables)
     local character = services.LocalPlayer.Character
     if character and character:FindFirstChild("HumanoidRootPart") then
         local originalPosition = character.HumanoidRootPart.CFrame
         character.HumanoidRootPart.CFrame = CFrame.new(tables.sellCoordinates)
-        sendNotification(services, "Teleported to sell location!", "#008000")
+        Functions.sendNotification(services, "Teleported to sell location!", "#008000")
         return originalPosition
     end
-    sendNotification(services, "Failed to teleport: Character missing!", "#b0171a")
+    Functions.sendNotification(services, "Failed to teleport: Character missing!", "#b0171a")
     return nil
 end
 
-local function teleportBack(services, originalPosition)
+function Functions.teleportBack(services, originalPosition)
     if not originalPosition then
-        sendNotification(services, "Original position not saved!", "#b0171a")
+        Functions.sendNotification(services, "Original position not saved!", "#b0171a")
         return false
     end
     local character = services.LocalPlayer.Character
     if character and character:FindFirstChild("HumanoidRootPart") then
         character.HumanoidRootPart.CFrame = originalPosition
-        sendNotification(services, "Teleported back to original position!", "#008000")
+        Functions.sendNotification(services, "Teleported back to original position!", "#008000")
         return true
     end
-    sendNotification(services, "Failed to teleport back: Character missing!", "#b0171a")
+    Functions.sendNotification(services, "Failed to teleport back: Character missing!", "#b0171a")
     return false
 end
 
-local function getPlantingPosition(services, settings)
+function Functions.getPlantingPosition(services, settings)
     if settings.plantingMode == "Saved Location" and settings.savedPlantingLocation then
         return settings.savedPlantingLocation
     else
@@ -497,21 +547,21 @@ local function getPlantingPosition(services, settings)
     end
 end
 
-local function stopCoroutine(name, coroutines)
+function Functions.stopCoroutine(name, coroutines)
     if coroutines[name] then
         coroutines[name].running = false
         coroutines[name] = nil
     end
 end
 
-local function startCoroutine(name, func, coroutines)
-    stopCoroutine(name, coroutines)
+function Functions.startCoroutine(name, func, coroutines)
+    Functions.stopCoroutine(name, coroutines)
     coroutines[name] = {running = true}
     coroutines[name].thread = coroutine.create(func)
     coroutine.resume(coroutines[name].thread)
 end
 
-local function antiAFK(services, coroutines)
+function Functions.antiAFK(services, coroutines)
     while coroutines.AntiIdle and coroutines.AntiIdle.running do
         local character = services.LocalPlayer.Character
         if character and character:FindFirstChild("Humanoid") and character:FindFirstChild("HumanoidRootPart") then
@@ -532,20 +582,20 @@ local function antiAFK(services, coroutines)
     end
 end
 
-local function secondsToMinSec(seconds)
+function Functions.secondsToMinSec(seconds)
     if not seconds or seconds <= 0 then return "Ready" end
     local minutes = math.floor(seconds / 60)
     local remainingSeconds = math.floor(seconds % 60)
     return string.format("%dm %ds", minutes, remainingSeconds)
 end
 
-local function getPetIds(services)
+function Functions.getPetIds(services)
     local petIds = {}
     local success, children = pcall(function()
         return services.LocalPlayer.PlayerGui:WaitForChild("ActivePetUI", 5):WaitForChild("Frame", 5):WaitForChild("Main", 5):WaitForChild("ScrollingFrame", 5):GetChildren()
     end)
     if not success then
-        sendNotification(services, "Failed to retrieve pet IDs!", "#b0171a")
+        Functions.sendNotification(services, "Failed to retrieve pet IDs!", "#b0171a")
         return petIds
     end
     local pattern = "{.-}"
@@ -557,13 +607,13 @@ local function getPetIds(services)
     return petIds
 end
 
-local function findPathByPetId(petId, services, petModelCache)
+function Functions.findPathByPetId(petId, services, petModelCache)
     if petModelCache[petId] then return petModelCache[petId] end
     local success, descendants = pcall(function()
         return services.petsPhysical:GetDescendants()
     end)
     if not success then
-        sendNotification(services, "Failed to find pet models!", "#b0171a")
+        Functions.sendNotification(services, "Failed to find pet models!", "#b0171a")
         return {}
     end
     local matches = {}
@@ -581,7 +631,7 @@ local function findPathByPetId(petId, services, petModelCache)
     return matches
 end
 
-local function createOrUpdatePetCooldownESP(petModel, petId, cooldownTime, services, petData)
+function Functions.createOrUpdatePetCooldownESP(petModel, petId, cooldownTime, services, petData)
     if not petModel or not petModel:IsA("Model") then return end
     local primaryPart = petModel.PrimaryPart or petModel:FindFirstChildWhichIsA("BasePart")
     if not primaryPart then return end
@@ -638,13 +688,13 @@ local function createOrUpdatePetCooldownESP(petModel, petId, cooldownTime, servi
     local cooldownLabel = frame and frame:FindFirstChild("CooldownLabel")
     if nameLabel and cooldownLabel then
         local petName = petData[petId] or "Unknown"
-        local displayText = "Cooldown: " .. secondsToMinSec(cooldownTime)
+        local displayText = "Cooldown: " .. Functions.secondsToMinSec(cooldownTime)
         if nameLabel.Text ~= petName then nameLabel.Text = petName end
         if cooldownLabel.Text ~= displayText then cooldownLabel.Text = displayText end
     end
 end
 
-local function cleanupPetCooldownESP(petIds, petModelCache)
+function Functions.cleanupPetCooldownESP(petIds, petModelCache)
     for cachedPetId, matches in pairs(petModelCache) do
         if not table.find(petIds, cachedPetId) then
             for _, match in ipairs(matches) do
@@ -662,21 +712,21 @@ local function cleanupPetCooldownESP(petIds, petModelCache)
     end
 end
 
-local function updatePetCooldowns(services, settings, petData, petModelCache)
+function Functions.updatePetCooldowns(services, settings, petData, petModelCache)
     if not settings.petCooldownESPActive then
-        cleanupPetCooldownESP({}, petModelCache)
+        Functions.cleanupPetCooldownESP({}, petModelCache)
         return
     end
-    petData = getPetNames(services)
-    local petIds = getPetIds(services)
+    petData = Functions.getPetNames(services)
+    local petIds = Functions.getPetIds(services)
     if #petIds == 0 then
-        cleanupPetCooldownESP(petIds, petModelCache)
-        sendNotification(services, "No pets in inventory!", "#b0171a")
+        Functions.cleanupPetCooldownESP(petIds, petModelCache)
+        Functions.sendNotification(services, "No pets in inventory!", "#b0171a")
         return
     end
-    cleanupPetCooldownESP(petIds, petModelCache)
+    Functions.cleanupPetCooldownESP(petIds, petModelCache)
     for _, petId in ipairs(petIds) do
-        local matches = findPathByPetId(petId, services, petModelCache)
+        local matches = Functions.findPathByPetId(petId, services, petModelCache)
         if #matches == 0 then continue end
         for _, match in ipairs(matches) do
             local petModel = match.instance
@@ -684,15 +734,15 @@ local function updatePetCooldowns(services, settings, petData, petModelCache)
                 return services.GetPetCooldown:InvokeServer(petId)
             end)
             if success and result and result[1] and result[1].Time then
-                createOrUpdatePetCooldownESP(petModel, petId, result[1].Time, services, petData)
+                Functions.createOrUpdatePetCooldownESP(petModel, petId, result[1].Time, services, petData)
             else
-                createOrUpdatePetCooldownESP(petModel, petId, nil, services, petData)
+                Functions.createOrUpdatePetCooldownESP(petModel, petId, nil, services, petData)
             end
         end
     end
 end
 
-local function createESP(plant, weight, mutations, services)
+function Functions.createESP(plant, weight, mutations, services)
     local part = plant:FindFirstChildWhichIsA("BasePart") or plant.PrimaryPart
     if not part then return end
     local billboard = Instance.new("BillboardGui")
@@ -722,7 +772,7 @@ local function createESP(plant, weight, mutations, services)
     billboard.Parent = part
 end
 
-local function clearESPs(plantsFolder)
+function Functions.clearESPs(plantsFolder)
     if not plantsFolder then return end
     for _, plant in ipairs(plantsFolder:GetChildren()) do
         for _, obj in ipairs(plant:GetDescendants()) do
@@ -733,23 +783,23 @@ local function clearESPs(plantsFolder)
     end
 end
 
-local function processPlants(services, tables, settings)
+function Functions.processPlants(services, tables, settings)
     if not settings.fruitESPActive then
-        local farm = findPlayerFarm(services)
+        local farm = Functions.findPlayerFarm(services)
         if farm then
             local plantsFolder = farm:FindFirstChild("Important") and farm.Important:FindFirstChild("Plants_Physical")
-            if plantsFolder then clearESPs(plantsFolder) end
+            if plantsFolder then Functions.clearESPs(plantsFolder) end
         end
         return
     end
-    local farm = findPlayerFarm(services)
+    local farm = Functions.findPlayerFarm(services)
     if not farm then return end
     local plantsFolder = farm:FindFirstChild("Important") and farm.Important:FindFirstChild("Plants_Physical")
     if not plantsFolder then
-        sendNotification(services, "Plants folder not found!", "#b0171a")
+        Functions.sendNotification(services, "Plants folder not found!", "#b0171a")
         return
     end
-    clearESPs(plantsFolder)
+    Functions.clearESPs(plantsFolder)
     for _, plant in ipairs(plantsFolder:GetChildren()) do
         local fruitsFolder = plant:FindFirstChild("Fruits")
         if fruitsFolder then
@@ -757,33 +807,30 @@ local function processPlants(services, tables, settings)
                 local weightValue = subFruit:FindFirstChild("Weight")
                 if weightValue and weightValue:IsA("NumberValue") then
                     local weight = math.round(weightValue.Value * 10) / 10
-                    local mutations = getPlantMutations(subFruit, tables)
-                    createESP(subFruit, weight, mutations, services)
+                    local mutations = Functions.getPlantMutations(subFruit, tables)
+                    Functions.createESP(subFruit, weight, mutations, services)
                 end
             end
         else
             local weightValue = plant:FindFirstChild("Weight")
             if weightValue and weightValue:IsA("NumberValue") then
                 local weight = math.round(weightValue.Value * 10) / 10
-                local mutations = getPlantMutations(plant, tables)
-                createESP(plant, weight, mutations, services)
+                local mutations = Functions.getPlantMutations(plant, tables)
+                Functions.createESP(plant, weight, mutations, services)
             end
         end
     end
 end
 
-local function saveSettings(settings)
+function Functions.saveSettings(settings)
     local HttpService = game:GetService("HttpService")
     local SETTINGS_FILE = "DEMONHUB_Settings.json"
-    local success, err = pcall(function()
+    pcall(function()
         writefile(SETTINGS_FILE, HttpService:JSONEncode(settings))
     end)
-    if not success then
-        warn("Failed to save settings: " .. (err or "Unknown error"))
-    end
 end
 
-local function loadSettings(tables)
+function Functions.loadSettings(tables)
     local HttpService = game:GetService("HttpService")
     local SETTINGS_FILE = "DEMONHUB_Settings.json"
     local success, settings = pcall(function()
@@ -795,33 +842,4 @@ local function loadSettings(tables)
     return tables.defaultSettings
 end
 
-return {
-    initializeServices = initializeServices,
-    sendNotification = sendNotification,
-    checkVersion = checkVersion,
-    CoreFunctions = CoreFunctions,
-    getPetNames = getPetNames,
-    getSeedInventory = getSeedInventory,
-    equipSeed = equipSeed,
-    equipEgg = equipEgg,
-    getPlantMutations = getPlantMutations,
-    findPlayerFarm = findPlayerFarm,
-    CanHarvest = CanHarvest,
-    IsTargetPlant = IsTargetPlant,
-    CollectHarvestable = CollectHarvestable,
-    GetHarvestablePlants = GetHarvestablePlants,
-    HarvestPlant = HarvestPlant,
-    favoriteFruits = favoriteFruits,
-    unfavoriteFruits = unfavoriteFruits,
-    sellPets = sellPets,
-    teleportToSellCoordinates = teleportToSellCoordinates,
-    teleportBack = teleportBack,
-    getPlantingPosition = getPlantingPosition,
-    stopCoroutine = stopCoroutine,
-    startCoroutine = startCoroutine,
-    antiAFK = antiAFK,
-    updatePetCooldowns = updatePetCooldowns,
-    processPlants = processPlants,
-    saveSettings = saveSettings,
-    loadSettings = loadSettings
-}
+return Functions
