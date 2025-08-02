@@ -1,5 +1,5 @@
 -- DEMONHUB UI for Roblox Farming Game
--- Version: 1.0.4 - Fixed
+-- Version: 1.0.3
 local function createUI(tables, functions, services, settings, coroutines, petData, petModelCache)
     local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
     local mutationNames = {}
@@ -21,64 +21,25 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         }
     })
 
-    -- Create tabs with proper structure
     local Tabs = {}
-    
-    -- Pets Section
-    Tabs.PetsTab = Window:Tab({
-        Title = "Pets",
-        Icon = "paw-print"
-    })
-    
-    -- Eggs Tab
-    Tabs.EggsTab = Window:Tab({
-        Title = "Eggs", 
-        Icon = "egg"
-    })
-    
-    -- Purchases Tab
-    Tabs.PurchasesTab = Window:Tab({
-        Title = "Purchases",
-        Icon = "shopping-cart"
-    })
-    
-    -- Farming Tab
-    Tabs.FarmingTab = Window:Tab({
-        Title = "Farming",
-        Icon = "sprout"
-    })
-    
-    -- Harvesting Tab
-    Tabs.HarvestingTab = Window:Tab({
-        Title = "Harvesting", 
-        Icon = "apple"
-    })
-    
-    -- Selling Tab
-    Tabs.SellingTab = Window:Tab({
-        Title = "Selling",
-        Icon = "dollar-sign"
-    })
-    
-    -- Visuals Tab
-    Tabs.VisualsTab = Window:Tab({
-        Title = "Visuals",
-        Icon = "eye"
-    })
-    
-    -- Sprinklers Tab
-    Tabs.SprinklersTab = Window:Tab({
-        Title = "Sprinklers",
-        Icon = "droplets"
-    })
-    
-    -- Misc Tab
-    Tabs.MiscTab = Window:Tab({
-        Title = "Misc",
-        Icon = "settings"
-    })
+    Tabs.PetsSection = Window:Section({Title = "Pets", Opened = true})
+    Tabs.PetsTab = Tabs.PetsSection:Tab({Title = "Pets", Icon = "paw-print", Desc = "Manage your pets"})
+    Tabs.EggsTab = Tabs.PetsSection:Tab({Title = "Eggs", Icon = "egg", Desc = "Manage egg hatching and planting"})
+    Tabs.PurchasesSection = Window:Section({Title = "Purchases", Opened = false})
+    Tabs.PurchasesTab = Tabs.PurchasesSection:Tab({Title = "Buy Items", Icon = "shopping-cart", Desc = "Purchase eggs, seeds, and gear"})
+    Tabs.FarmingSection = Window:Section({Title = "Farming", Opened = false})
+    Tabs.FarmingTab = Tabs.FarmingSection:Tab({Title = "Plants", Icon = "sprout", Desc = "Auto planting"})
+    Tabs.HarvestingSection = Window:Section({Title = "Harvesting", Opened = false})
+    Tabs.HarvestingTab = Tabs.HarvestingSection:Tab({Title = "Auto Harvesting", Icon = "apple", Desc = "Auto harvest"})
+    Tabs.SellingSection = Window:Section({Title = "Selling", Opened = false})
+    Tabs.SellingTab = Tabs.SellingSection:Tab({Title = "Auto Selling", Icon = "dollar-sign", Desc = "Sell fruits automatically"})
+    Tabs.VisualsSection = Window:Section({Title = "Visuals", Opened = false})
+    Tabs.VisualsTab = Tabs.VisualsSection:Tab({Title = "ESP Visuals", Icon = "eye", Desc = "Enable ESP"})
+    Tabs.SprinklersSection = Window:Section({Title = "Sprinklers", Opened = false})
+    Tabs.DeleteTab = Tabs.SprinklersSection:Tab({Title = "Delete", Icon = "trash", Desc = "Delete sprinklers"})
+    Tabs.MiscSection = Window:Section({Title = "Miscellaneous", Opened = true})
+    Tabs.MiscTab = Tabs.MiscSection:Tab({Title = "Misc Options", Icon = "settings", Desc = "Additional features"})
 
-    -- Pet Management Section
     local petDropdown
     local petNames = {"[Click Refresh]"}
     petDropdown = Tabs.PetsTab:Dropdown({
@@ -112,13 +73,12 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
             for _, name in pairs(petData) do
                 if name and name ~= "" then table.insert(petNames, name) end
             end
-            table.sort(petNames)
             if petDropdown then pcall(function() petDropdown:Destroy() end) end
             petNames = #petNames > 0 and petNames or {"[No Pets Found]"}
             petDropdown = Tabs.PetsTab:Dropdown({
                 Title = "Select Pets",
                 Values = petNames,
-                Value = {},
+                Value = #petNames > 0 and {petNames[1]} or {},
                 Multi = true,
                 AllowNone = true,
                 Callback = function(selectedOptions)
@@ -137,6 +97,11 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
                 end
             })
             settings.selectedPets = {}
+            if #petNames > 0 then
+                for petId, petName in pairs(petData) do
+                    if petName == petNames[1] then table.insert(settings.selectedPets, petId) end
+                end
+            end
             functions.saveSettings(settings)
         end
     })
@@ -145,16 +110,14 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         Title = "Auto Middle",
         Icon = "toggle-right",
         Value = settings.autoMiddleActive,
+        Type = "Checkbox",
         Callback = function(value)
             settings.autoMiddleActive = value
             if settings.autoMiddleActive and #settings.selectedPets > 0 then
                 functions.startCoroutine("AutoMiddle", function()
                     while coroutines.AutoMiddle and coroutines.AutoMiddle.running and #settings.selectedPets > 0 do
                         for _, petId in ipairs(settings.selectedPets) do
-                            pcall(function()
-                                services.ActivePetService:FireServer("SetPetState", petId, "Idle")
-                                functions.sendNotification(services, string.format("Set %s to Idle", petData[petId] or petId), "#008000")
-                            end)
+                            pcall(function() services.ActivePetService:FireServer("SetPetState", petId, "Idle") end)
                         end
                         wait(0.2)
                     end
@@ -168,98 +131,14 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         end
     })
 
-    local sellPetDropdown = Tabs.PetsTab:Dropdown({
-        Title = "Select Pet to Sell",
-        Values = {"All", unpack(tables.allPets)},
-        Value = settings.SelectedSellPet or "All",
-        AllowNone = true,
-        Callback = function(value)
-            settings.SelectedSellPet = value == "All" and nil or value
-            if settings.autoSellPetsActive and not settings.SelectedSellPet and value ~= "All" then
-                functions.stopCoroutine("AutoSellPets", coroutines)
-                settings.autoSellPetsActive = false
-            end
-            functions.saveSettings(settings)
-        end
-    })
-
-    Tabs.PetsTab:Slider({
-        Title = "Max Pet Weight (kg)",
-        Value = {
-            Min = 0,
-            Max = 100,
-            Default = settings.PetWeightThreshold,
-        },
-        Callback = function(value)
-            settings.PetWeightThreshold = value
-            functions.saveSettings(settings)
-        end
-    })
-
-    Tabs.PetsTab:Slider({
-        Title = "Max Pet Age",
-        Value = {
-            Min = 0,
-            Max = 100,
-            Default = settings.PetAgeThreshold,
-        },
-        Callback = function(value)
-            settings.PetAgeThreshold = value
-            functions.saveSettings(settings)
-        end
-    })
-
--- Replace TextBox with Input for sell pet delay
-Tabs.PetsTab:Input({
-    Title = "Sell Pets Delay (ms)",
-    Placeholder = "Enter delay in milliseconds",
-    Text = tostring(settings.SellPetDelay),  -- assuming the delay is already stored in milliseconds
-    Callback = function(value)
-        local num = tonumber(value)
-        if num then  -- Check if the input is a valid number
-            settings.SellPetDelay = num
-            functions.saveSettings(settings)
-            functions.sendNotification(services, "Sell pet delay updated: " .. num .. " milliseconds", "#008000")
-        else
-            functions.sendNotification(services, "Invalid input! Please enter a valid number.", "#b0171a")
-        end
-    end
-})
-
-    Tabs.PetsTab:Toggle({
-        Title = "Auto Sell Pets",
-        Icon = "dollar-sign",
-        Value = settings.autoSellPetsActive,
-        Callback = function(value)
-            settings.autoSellPetsActive = value
-            if settings.autoSellPetsActive then
-                functions.startCoroutine("AutoSellPets", function()
-                    while coroutines.AutoSellPets and coroutines.AutoSellPets.running do
-                        local soldCount = functions.sellPets(services, settings, tables)
-                        if soldCount > 0 then
-                            functions.sendNotification(services, string.format("Sold %d pets successfully!", soldCount), "#008000")
-                        end
-                        wait(settings.SellPetDelay * 60)
-                    end
-                    settings.autoSellPetsActive = false
-                end, coroutines)
-            else
-                functions.stopCoroutine("AutoSellPets", coroutines)
-                settings.autoSellPetsActive = false
-            end
-            functions.saveSettings(settings)
-        end
-    })
-
-    -- Eggs Tab Content
     local eggDropdown = Tabs.EggsTab:Dropdown({
         Title = "Select Eggs",
-        Values = tables.eggs,
+        Values = {"All", unpack(tables.eggs)},
         Value = settings.selectedEggs,
         Multi = true,
         AllowNone = true,
         Callback = function(selectedOptions)
-            settings.selectedEggs = {}
+            settings.selectedEggs = table.find(selectedOptions, "All") and tables.eggs or {}
             selectedOptions = type(selectedOptions) == "table" and selectedOptions or {selectedOptions}
             for _, egg in ipairs(selectedOptions) do
                 if table.find(tables.eggs, egg) then table.insert(settings.selectedEggs, egg) end
@@ -279,7 +158,7 @@ Tabs.PetsTab:Input({
     Tabs.EggsTab:Dropdown({
         Title = "Egg Action",
         Values = {"Hatch", "Plant"},
-        Value = settings.selectedEggAction or "Hatch",
+        Value = settings.selectedEggAction,
         Callback = function(value)
             settings.selectedEggAction = value
             if settings.autoHatchEggsActive and settings.selectedEggAction == "Plant" then
@@ -323,26 +202,24 @@ Tabs.PetsTab:Input({
         Title = "Auto Hatch Eggs",
         Icon = "egg",
         Value = settings.autoHatchEggsActive,
+        Type = "Checkbox",
         Callback = function(value)
             settings.autoHatchEggsActive = value
             if settings.autoHatchEggsActive and #settings.selectedEggs > 0 and settings.selectedEggAction == "Hatch" then
                 functions.startCoroutine("AutoHatchEggs", function()
                     local character = services.LocalPlayer.Character
                     if not character or not character:FindFirstChild("HumanoidRootPart") then
-                        functions.sendNotification(services, "Character not found for hatching eggs!", "#b0171a")
                         settings.autoHatchEggsActive = false
                         return
                     end
                     local humanoidRootPart = character.HumanoidRootPart
                     local playerFarm = functions.findPlayerFarm(services)
                     if not playerFarm then
-                        functions.sendNotification(services, "Player farm not found for hatching eggs!", "#b0171a")
                         settings.autoHatchEggsActive = false
                         return
                     end
                     local objectsPhysical = playerFarm:FindFirstChild("Important") and playerFarm.Important:FindFirstChild("Objects_Physical")
                     if not objectsPhysical then
-                        functions.sendNotification(services, "Objects folder not found for hatching eggs!", "#b0171a")
                         settings.autoHatchEggsActive = false
                         return
                     end
@@ -358,8 +235,8 @@ Tabs.PetsTab:Input({
                             end
                         end
                         if #eggList == 0 then
-                            wait(1)
-                            continue
+                            settings.autoHatchEggsActive = false
+                            return
                         end
                         for _, egg in ipairs(eggList) do
                             local hitBox = egg:FindFirstChild("HitBox") or egg:FindFirstChildWhichIsA("BasePart")
@@ -368,10 +245,7 @@ Tabs.PetsTab:Input({
                             local eggHeight = hitBox.Size.Y
                             humanoidRootPart.CFrame = hitBox.CFrame + Vector3.new(0, eggHeight + 3, 0)
                             wait(0.5)
-                            pcall(function()
-                                fireproximityprompt(proximityPrompt)
-                                functions.sendNotification(services, string.format("Hatched %s egg!", egg.Name), "#008000")
-                            end)
+                            pcall(function() fireproximityprompt(proximityPrompt) end)
                             wait(settings.EggHatchDelay)
                         end
                         wait(1)
@@ -390,25 +264,23 @@ Tabs.PetsTab:Input({
         Title = "Auto Plant Eggs",
         Icon = "sprout",
         Value = settings.autoPlantEggsActive,
+        Type = "Checkbox",
         Callback = function(value)
             settings.autoPlantEggsActive = value
             if settings.autoPlantEggsActive and #settings.selectedEggs > 0 and settings.selectedEggAction == "Plant" then
                 functions.startCoroutine("AutoPlantEggs", function()
                     local character = services.LocalPlayer.Character
                     if not character or not character:FindFirstChild("Humanoid") then
-                        functions.sendNotification(services, "Character not found for planting eggs!", "#b0171a")
                         settings.autoPlantEggsActive = false
                         return
                     end
                     local playerFarm = functions.findPlayerFarm(services)
                     if not playerFarm then
-                        functions.sendNotification(services, "Player farm not found for planting eggs!", "#b0171a")
                         settings.autoPlantEggsActive = false
                         return
                     end
                     local plantLocationsFolder = playerFarm:FindFirstChild("Important") and playerFarm.Important:FindFirstChild("Plant_Locations")
                     if not plantLocationsFolder then
-                        functions.sendNotification(services, "Plant locations not found!", "#b0171a")
                         settings.autoPlantEggsActive = false
                         return
                     end
@@ -427,7 +299,6 @@ Tabs.PetsTab:Input({
                                 end
                             end
                         else
-                            functions.sendNotification(services, "Base plate not found!", "#b0171a")
                             settings.autoPlantEggsActive = false
                             return
                         end
@@ -443,22 +314,23 @@ Tabs.PetsTab:Input({
                             end
                             if isValid then table.insert(availableLocations, position) end
                         end
-                        if #availableLocations == 0 then
-                            wait(1)
-                            continue
-                        end
+                        if #availableLocations == 0 then wait(1) continue end
                         for _, egg in ipairs(settings.selectedEggs) do
-                            if not functions.equipEgg(egg, services) then continue end
+                            local eggTool = nil
+                            for _, item in ipairs(services.LocalPlayer.Backpack:GetChildren()) do
+                                if item:IsA("Tool") and string.find(item.Name, egg, 1, true) then
+                                    eggTool = item
+                                    break
+                                end
+                            end
+                            if not eggTool then continue end
+                            character.Humanoid:EquipTool(eggTool)
                             local randomIndex = math.random(1, #availableLocations)
                             local position = availableLocations[randomIndex]
                             local success = pcall(function()
                                 services.ReplicatedStorage.GameEvents.PetEggService:FireServer("CreateEgg", position)
                             end)
-                            if success then
-                                table.insert(placedEggs, position)
-                                table.remove(availableLocations, randomIndex)
-                                functions.sendNotification(services, string.format("Planted %s egg!", egg), "#008000")
-                            end
+                            if success then table.insert(placedEggs, position) end
                             wait(settings.EggPlantDelay)
                         end
                         wait(1)
@@ -473,15 +345,14 @@ Tabs.PetsTab:Input({
         end
     })
 
-    -- Purchases Tab Content
     local eggDropdownPurchases = Tabs.PurchasesTab:Dropdown({
         Title = "Select Eggs to Buy",
-        Values = tables.eggs,
+        Values = {"All", unpack(tables.eggs)},
         Value = settings.selectedEggs,
         Multi = true,
         AllowNone = true,
         Callback = function(selectedOptions)
-            settings.selectedEggs = {}
+            settings.selectedEggs = table.find(selectedOptions, "All") and tables.eggs or {}
             selectedOptions = type(selectedOptions) == "table" and selectedOptions or {selectedOptions}
             for _, egg in ipairs(selectedOptions) do
                 if table.find(tables.eggs, egg) then table.insert(settings.selectedEggs, egg) end
@@ -496,12 +367,12 @@ Tabs.PetsTab:Input({
 
     local seedDropdown = Tabs.PurchasesTab:Dropdown({
         Title = "Select Seeds",
-        Values = tables.seedShopSeeds,
+        Values = {"All", unpack(tables.seedShopSeeds)},
         Value = settings.selectedSeeds,
         Multi = true,
         AllowNone = true,
         Callback = function(selectedOptions)
-            settings.selectedSeeds = {}
+            settings.selectedSeeds = table.find(selectedOptions, "All") and tables.seedShopSeeds or {}
             selectedOptions = type(selectedOptions) == "table" and selectedOptions or {selectedOptions}
             for _, seed in ipairs(selectedOptions) do
                 if table.find(tables.seedShopSeeds, seed) then table.insert(settings.selectedSeeds, seed) end
@@ -512,12 +383,12 @@ Tabs.PetsTab:Input({
 
     local gearDropdown = Tabs.PurchasesTab:Dropdown({
         Title = "Select Gear",
-        Values = tables.gears,
+        Values = {"All", unpack(tables.gears)},
         Value = settings.selectedGears,
         Multi = true,
         AllowNone = true,
         Callback = function(selectedOptions)
-            settings.selectedGears = {}
+            settings.selectedGears = table.find(selectedOptions, "All") and tables.gears or {}
             selectedOptions = type(selectedOptions) == "table" and selectedOptions or {selectedOptions}
             for _, gear in ipairs(selectedOptions) do
                 if table.find(tables.gears, gear) then table.insert(settings.selectedGears, gear) end
@@ -530,16 +401,14 @@ Tabs.PetsTab:Input({
         Title = "Auto Buy Eggs",
         Icon = "repeat",
         Value = settings.autoBuyEggsActive,
+        Type = "Checkbox",
         Callback = function(value)
             settings.autoBuyEggsActive = value
             if settings.autoBuyEggsActive and #settings.selectedEggs > 0 then
                 functions.startCoroutine("AutoBuyEggs", function()
                     while coroutines.AutoBuyEggs and coroutines.AutoBuyEggs.running do
                         for _, egg in ipairs(settings.selectedEggs) do
-                            pcall(function()
-                                services.BuyPetEgg:FireServer(egg)
-                                functions.sendNotification(services, string.format("Bought %s egg!", egg), "#008000")
-                            end)
+                            pcall(function() services.BuyPetEgg:FireServer(egg) end)
                             wait(0.2)
                         end
                         wait(1)
@@ -558,16 +427,14 @@ Tabs.PetsTab:Input({
         Title = "Auto Buy Seeds",
         Icon = "repeat",
         Value = settings.autoBuySeedsActive,
+        Type = "Checkbox",
         Callback = function(value)
             settings.autoBuySeedsActive = value
             if settings.autoBuySeedsActive and #settings.selectedSeeds > 0 then
                 functions.startCoroutine("AutoBuySeeds", function()
                     while coroutines.AutoBuySeeds and coroutines.AutoBuySeeds.running do
                         for _, seed in ipairs(settings.selectedSeeds) do
-                            pcall(function()
-                                services.BuySeedStock:FireServer(seed)
-                                functions.sendNotification(services, string.format("Bought %s seed!", seed), "#008000")
-                            end)
+                            pcall(function() services.BuySeedStock:FireServer(seed) end)
                             wait(0.2)
                         end
                         wait(1)
@@ -586,16 +453,14 @@ Tabs.PetsTab:Input({
         Title = "Auto Buy Gear",
         Icon = "repeat",
         Value = settings.autoBuyGearActive,
+        Type = "Checkbox",
         Callback = function(value)
             settings.autoBuyGearActive = value
             if settings.autoBuyGearActive and #settings.selectedGears > 0 then
                 functions.startCoroutine("AutoBuyGear", function()
                     while coroutines.AutoBuyGear and coroutines.AutoBuyGear.running do
                         for _, gear in ipairs(settings.selectedGears) do
-                            pcall(function()
-                                services.BuyGearStock:FireServer(gear)
-                                functions.sendNotification(services, string.format("Bought %s gear!", gear), "#008000")
-                            end)
+                            pcall(function() services.BuyGearStock:FireServer(gear) end)
                             wait(0.2)
                         end
                         wait(1)
@@ -610,11 +475,9 @@ Tabs.PetsTab:Input({
         end
     })
 
-    -- Farming Tab Content
     local seedInventoryDropdown
     local function updateSeedInventoryDropdown()
         local seedInventory = functions.getSeedInventory(services, tables)
-        table.sort(seedInventory)
         if seedInventoryDropdown then pcall(function() seedInventoryDropdown:Destroy() end) end
         seedInventoryDropdown = Tabs.FarmingTab:Dropdown({
             Title = "Select Seed to Plant",
@@ -640,12 +503,10 @@ Tabs.PetsTab:Input({
             if settings.autoPlantActive and settings.plantingMode == "Saved Location" and not settings.savedPlantingLocation then
                 functions.stopCoroutine("AutoPlant", coroutines)
                 settings.autoPlantActive = false
-                functions.sendNotification(services, "No saved planting location!", "#b0171a")
             end
             if settings.autoPlantEggsActive and settings.plantingMode == "Saved Location" and not settings.savedPlantingLocation then
                 functions.stopCoroutine("AutoPlantEggs", coroutines)
                 settings.autoPlantEggsActive = false
-                functions.sendNotification(services, "No saved planting location!", "#b0171a")
             end
             functions.saveSettings(settings)
         end
@@ -658,10 +519,7 @@ Tabs.PetsTab:Input({
             local character = services.LocalPlayer.Character
             if character and character:FindFirstChild("HumanoidRootPart") then
                 settings.savedPlantingLocation = character.HumanoidRootPart.Position
-                functions.sendNotification(services, "Saved current planting location!", "#008000")
                 functions.saveSettings(settings)
-            else
-                functions.sendNotification(services, "Failed to save location: Character missing!", "#b0171a")
             end
         end
     })
@@ -691,6 +549,7 @@ Tabs.PetsTab:Input({
         Title = "Auto Plant",
         Icon = "sprout",
         Value = settings.autoPlantActive,
+        Type = "Checkbox",
         Callback = function(value)
             settings.autoPlantActive = value
             if settings.autoPlantActive then
@@ -700,7 +559,6 @@ Tabs.PetsTab:Input({
                     return
                 end
                 if settings.plantingMode == "Saved Location" and not settings.savedPlantingLocation then
-                    functions.sendNotification(services, "No saved planting location!", "#b0171a")
                     settings.autoPlantActive = false
                     functions.saveSettings(settings)
                     return
@@ -709,10 +567,7 @@ Tabs.PetsTab:Input({
                     while coroutines.AutoPlant and coroutines.AutoPlant.running do
                         local position = functions.getPlantingPosition(services, settings)
                         if position then
-                            pcall(function()
-                                services.Plant_RE:FireServer(position, settings.selectedSeed)
-                                functions.sendNotification(services, string.format("Planted %s!", settings.selectedSeed), "#008000")
-                            end)
+                            pcall(function() services.Plant_RE:FireServer(position, settings.selectedSeed) end)
                         end
                         wait(settings.PlantDelay)
                     end
@@ -726,15 +581,14 @@ Tabs.PetsTab:Input({
         end
     })
 
-    -- Harvesting Tab Content
     local fruitDropdown = Tabs.HarvestingTab:Dropdown({
-        Title = "Select Fruits to Harvest",
-        Values = tables.allFruits,
+        Title = "Select Fruits",
+        Values = {"All", unpack(tables.allFruits)},
         Value = settings.TargetFruits,
         Multi = true,
         AllowNone = true,
         Callback = function(selectedOptions)
-            settings.TargetFruits = {}
+            settings.TargetFruits = table.find(selectedOptions, "All") and {} or {}
             selectedOptions = type(selectedOptions) == "table" and selectedOptions or {selectedOptions}
             for _, fruit in ipairs(selectedOptions) do
                 if table.find(tables.allFruits, fruit) then table.insert(settings.TargetFruits, fruit) end
@@ -744,13 +598,13 @@ Tabs.PetsTab:Input({
     })
 
     local mutationDropdown = Tabs.HarvestingTab:Dropdown({
-        Title = "Select Mutations to Harvest",
-        Values = mutationNames,
+        Title = "Select Mutations",
+        Values = {"All", unpack(mutationNames)},
         Value = settings.TargetMutations,
         Multi = true,
         AllowNone = true,
         Callback = function(selectedOptions)
-            settings.TargetMutations = {}
+            settings.TargetMutations = table.find(selectedOptions, "All") and {} or {}
             selectedOptions = type(selectedOptions) == "table" and selectedOptions or {selectedOptions}
             for _, mutation in ipairs(selectedOptions) do
                 if table.find(mutationNames, mutation) then table.insert(settings.TargetMutations, mutation) end
@@ -760,10 +614,10 @@ Tabs.PetsTab:Input({
     })
 
     Tabs.HarvestingTab:Slider({
-        Title = "Minimum Fruit Weight (kg)",
+        Title = "Min Weight (kg)",
         Value = {
             Min = 0,
-            Max = 100,
+            Max = 1000,
             Default = settings.MinimumWeight,
         },
         Callback = function(value)
@@ -772,21 +626,33 @@ Tabs.PetsTab:Input({
         end
     })
 
+    Tabs.HarvestingTab:Slider({
+        Title = "Harvest Delay (ms)",
+        Value = {
+            Min = 10,
+            Max = 1000,
+            Default = settings.HarvestDelay * 1000,
+        },
+        Callback = function(value)
+            settings.HarvestDelay = value / 1000
+            functions.saveSettings(settings)
+        end
+    })
+
     Tabs.HarvestingTab:Toggle({
         Title = "Auto Harvest",
         Icon = "apple",
         Value = settings.autoHarvestActive,
+        Type = "Checkbox",
         Callback = function(value)
             settings.autoHarvestActive = value
             if settings.autoHarvestActive then
                 functions.startCoroutine("AutoHarvest", function()
                     while coroutines.AutoHarvest and coroutines.AutoHarvest.running do
-                        local plants = functions.GetHarvestablePlants(services, tables, settings)
-                        for _, plant in ipairs(plants) do
-                            functions.HarvestPlant(plant, services)
-                            wait(settings.HarvestDelay)
+                        for _, Plant in ipairs(functions.GetHarvestablePlants(services, tables, settings)) do
+                            functions.HarvestPlant(Plant)
                         end
-                        wait(0.5)
+                        wait(settings.HarvestDelay)
                     end
                     settings.autoHarvestActive = false
                 end, coroutines)
@@ -798,99 +664,33 @@ Tabs.PetsTab:Input({
         end
     })
 
-    -- Selling Tab Content
-    local protectedFruitDropdown = Tabs.SellingTab:Dropdown({
-        Title = "Select Protected Fruits",
-        Values = tables.allFruits,
-        Value = settings.ProtectedFruits,
-        Multi = true,
-        AllowNone = true,
-        Callback = function(selectedOptions)
-            settings.ProtectedFruits = {}
-            selectedOptions = type(selectedOptions) == "table" and selectedOptions or {selectedOptions}
-            for _, fruit in ipairs(selectedOptions) do
-                if table.find(tables.allFruits, fruit) then table.insert(settings.ProtectedFruits, fruit) end
-            end
-            functions.saveSettings(settings)
-        end
-    })
-
-    local protectedMutationDropdown = Tabs.SellingTab:Dropdown({
-        Title = "Select Protected Mutations",
-        Values = mutationNames,
-        Value = settings.ProtectedMutations,
-        Multi = true,
-        AllowNone = true,
-        Callback = function(selectedOptions)
-            settings.ProtectedMutations = {}
-            selectedOptions = type(selectedOptions) == "table" and selectedOptions or {selectedOptions}
-            for _, mutation in ipairs(selectedOptions) do
-                if table.find(mutationNames, mutation) then table.insert(settings.ProtectedMutations, mutation) end
-            end
-            functions.saveSettings(settings)
-        end
-    })
-
-    Tabs.SellingTab:Button({
-        Title = "Favorite Protected Fruits",
-        Icon = "star",
-        Callback = function()
-            local favoredCount = functions.favoriteFruits(services, settings, tables)
-            if favoredCount > 0 then
-                functions.sendNotification(services, string.format("Favorited %d fruits!", favoredCount), "#008000")
-            else
-                functions.sendNotification(services, "No fruits favorited!", "#b0171a")
-            end
-        end
-    })
-
-    Tabs.SellingTab:Button({
-        Title = "Unfavorite Protected Fruits",
-        Icon = "star-off",
-        Callback = function()
-            local unfavoredCount = functions.unfavoriteFruits(services, settings, tables)
-            if unfavoredCount > 0 then
-                functions.sendNotification(services, string.format("Unfavorited %d fruits!", unfavoredCount), "#008000")
-            else
-                functions.sendNotification(services, "No fruits unfavorited!", "#b0171a")
-            end
-        end
-    })
-
-    -- Replace TextBox with Input for sell delay
-    Tabs.SellingTab:Input({
+    Tabs.SellingTab:Slider({
         Title = "Sell Delay (min)",
-        Placeholder = "Enter delay in minutes (1-60)",
-        Text = tostring(settings.SellDelay),
+        Value = {
+            Min = 1,
+            Max = 60,
+            Default = settings.SellDelay,
+        },
         Callback = function(value)
-            local num = tonumber(value)
-            if num and num >= 1 and num <= 60 then
-                settings.SellDelay = num
-                functions.saveSettings(settings)
-                functions.sendNotification(services, "Sell delay updated: " .. num .. " minutes", "#008000")
-            else
-                functions.sendNotification(services, "Invalid delay! Enter a number between 1 and 60.", "#b0171a")
-            end
+            settings.SellDelay = value
+            functions.saveSettings(settings)
         end
     })
 
     Tabs.SellingTab:Toggle({
-        Title = "Auto Sell",
+        Title = "Auto Sell Fruits",
         Icon = "dollar-sign",
         Value = settings.autoSellActive,
+        Type = "Checkbox",
         Callback = function(value)
             settings.autoSellActive = value
             if settings.autoSellActive then
                 functions.startCoroutine("AutoSell", function()
                     while coroutines.AutoSell and coroutines.AutoSell.running do
                         local originalPosition = functions.teleportToSellCoordinates(services, tables)
-                        if originalPosition then
-                            pcall(function()
-                                services.Sell_Inventory:FireServer()
-                                functions.sendNotification(services, "Sold inventory!", "#008000")
-                            end)
-                            wait(0.5)
-                            functions.teleportBack(services, originalPosition)
+                        pcall(function() services.Sell_Inventory:FireServer() end)
+                        if originalPosition and services.LocalPlayer.Character and services.LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                            services.LocalPlayer.Character.HumanoidRootPart.CFrame = originalPosition
                         end
                         wait(settings.SellDelay * 60)
                     end
@@ -904,67 +704,27 @@ Tabs.PetsTab:Input({
         end
     })
 
-    -- Visuals Tab Content
-    Tabs.VisualsTab:Toggle({
-        Title = "Fruit ESP",
-        Icon = "eye",
-        Value = settings.fruitESPActive,
-        Callback = function(value)
-            settings.fruitESPActive = value
-            if settings.fruitESPActive then
-                functions.startCoroutine("FruitESP", function()
-                    while coroutines.FruitESP and coroutines.FruitESP.running do
-                        functions.processPlants(services, tables, settings)
-                        wait(1)
-                    end
-                end, coroutines)
-            else
-                functions.stopCoroutine("FruitESP", coroutines)
-                local farm = functions.findPlayerFarm(services)
-                if farm then
-                    local plantsFolder = farm:FindFirstChild("Important") and farm.Important:FindFirstChild("Plants_Physical")
-                    if plantsFolder then functions.clearESPs(plantsFolder) end
-                end
-            end
-            functions.saveSettings(settings)
-        end
-    })
-
-    Tabs.VisualsTab:Toggle({
-        Title = "Pet Cooldown ESP",
-        Icon = "clock",
-        Value = settings.petCooldownESPActive,
-        Callback = function(value)
-            settings.petCooldownESPActive = value
-            if settings.petCooldownESPActive then
-                functions.startCoroutine("PetCooldownESP", function()
-                    while coroutines.PetCooldownESP and coroutines.PetCooldownESP.running do
-                        functions.updatePetCooldowns(services, settings, petData, petModelCache)
-                        wait(1)
-                    end
-                end, coroutines)
-            else
-                functions.stopCoroutine("PetCooldownESP", coroutines)
-                functions.cleanupPetCooldownESP({}, petModelCache)
-            end
-            functions.saveSettings(settings)
-        end
-    })
-
-    -- Sprinklers Tab Content
-    local sprinklerDropdown = Tabs.SprinklersTab:Dropdown({
-        Title = "Select Sprinklers to Delete",
-        Values = tables.sprinklerTypes,
+    local sprinklerDropdown = Tabs.DeleteTab:Dropdown({
+        Title = "Select Sprinklers",
+        Values = {"All", unpack(tables.sprinklerTypes)},
         Value = settings.selectedSprinklers,
         Multi = true,
         AllowNone = true,
         Callback = function(selectedOptions)
-            settings.selectedSprinklers = {}
+            settings.selectedSprinklers = table.find(selectedOptions, "All") and tables.sprinklerTypes or {}
             selectedOptions = type(selectedOptions) == "table" and selectedOptions or {selectedOptions}
             for _, sprinkler in ipairs(selectedOptions) do
-                if table.find(tables.sprinklerTypes, sprinkler) then table.insert(settings.selectedSprinklers, sprinkler) end
+                if table.find(tables.sprinklerTypes, sprinkler) then
+                    functions.CoreFunctions.addSprinklerToSelection(sprinkler)
+                end
             end
-            _G.selectedSprinklers = settings.selectedSprinklers
+            local newSelectedSprinklers = {}
+            for _, sprinkler in ipairs(settings.selectedSprinklers) do
+                if table.find(selectedOptions, sprinkler) or table.find(selectedOptions, "All") then
+                    table.insert(newSelectedSprinklers, sprinkler)
+                end
+            end
+            functions.CoreFunctions.setSelectedSprinklers(newSelectedSprinklers)
             if settings.autoDeleteSprinklersActive and #settings.selectedSprinklers == 0 then
                 functions.stopCoroutine("AutoDeleteSprinklers", coroutines)
                 settings.autoDeleteSprinklersActive = false
@@ -973,18 +733,11 @@ Tabs.PetsTab:Input({
         end
     })
 
-    Tabs.SprinklersTab:Button({
-        Title = "Delete All Sprinklers",
-        Icon = "trash",
-        Callback = function()
-            functions.CoreFunctions.deleteAllSprinklers(services, tables)
-        end
-    })
-
-    Tabs.SprinklersTab:Toggle({
+    Tabs.DeleteTab:Toggle({
         Title = "Auto Delete Sprinklers",
         Icon = "trash",
         Value = settings.autoDeleteSprinklersActive,
+        Type = "Checkbox",
         Callback = function(value)
             settings.autoDeleteSprinklersActive = value
             if settings.autoDeleteSprinklersActive and #settings.selectedSprinklers > 0 then
@@ -1003,17 +756,64 @@ Tabs.PetsTab:Input({
         end
     })
 
-    -- Misc Tab Content
+    Tabs.VisualsTab:Toggle({
+        Title = "Fruit ESP",
+        Icon = "eye",
+        Value = settings.fruitESPActive,
+        Type = "Checkbox",
+        Callback = function(value)
+            settings.fruitESPActive = value
+            functions.processPlants(services, tables, settings)
+            functions.saveSettings(settings)
+        end
+    })
+
+    Tabs.VisualsTab:Toggle({
+        Title = "Pet Cooldown ESP",
+        Icon = "eye",
+        Value = settings.petCooldownESPActive,
+        Type = "Checkbox",
+        Callback = function(value)
+            settings.petCooldownESPActive = value
+            if settings.petCooldownESPActive then
+                functions.updatePetCooldowns(services, settings, petData, petModelCache)
+                local lastUpdate = 0
+                local connection
+                connection = services.RunService.Heartbeat:Connect(function()
+                    local currentTime = tick()
+                    if currentTime - lastUpdate >= 3 then
+                        functions.updatePetCooldowns(services, settings, petData, petModelCache)
+                        lastUpdate = currentTime
+                    end
+                end)
+                local scrollingFrame = services.LocalPlayer.PlayerGui:WaitForChild("ActivePetUI"):WaitForChild("Frame"):WaitForChild("Main"):WaitForChild("ScrollingFrame")
+                local childAddedConnection = scrollingFrame.ChildAdded:Connect(function()
+                    functions.updatePetCooldowns(services, settings, petData, petModelCache)
+                end)
+                local childRemovedConnection = scrollingFrame.ChildRemoved:Connect(function()
+                    functions.updatePetCooldowns(services, settings, petData, petModelCache)
+                end)
+                game:BindToClose(function()
+                    connection:Disconnect()
+                    childAddedConnection:Disconnect()
+                    childRemovedConnection:Disconnect()
+                end)
+            else
+                functions.updatePetCooldowns(services, settings, petData, petModelCache)
+            end
+            functions.saveSettings(settings)
+        end
+    })
+
     Tabs.MiscTab:Toggle({
-        Title = "Anti Idle",
-        Icon = "user",
+        Title = "Anti-Idle",
+        Icon = "clock",
         Value = settings.antiIdleActive,
+        Type = "Checkbox",
         Callback = function(value)
             settings.antiIdleActive = value
             if settings.antiIdleActive then
-                functions.startCoroutine("AntiIdle", function()
-                    functions.antiAFK(services, coroutines)
-                end, coroutines)
+                functions.startCoroutine("AntiIdle", function() functions.antiAFK(services, coroutines) end, coroutines)
             else
                 functions.stopCoroutine("AntiIdle", coroutines)
             end
@@ -1021,40 +821,28 @@ Tabs.PetsTab:Input({
         end
     })
 
-    Tabs.MiscTab:Button({
-        Title = "Save Settings",
-        Icon = "save",
-        Callback = function()
-            functions.saveSettings(settings)
-            functions.sendNotification(services, "Settings saved!", "#008000")
+    local function updateESP()
+        while true do
+            if settings.fruitESPActive then pcall(function() functions.processPlants(services, tables, settings) end) end
+            if settings.petCooldownESPActive then pcall(function() functions.updatePetCooldowns(services, settings, petData, petModelCache) end) end
+            wait(3) -- Increased interval for lower resource usage
         end
-    })
+    end
 
-    Tabs.MiscTab:Button({
-        Title = "Load Settings",
-        Icon = "download",
-        Callback = function()
-            local loadedSettings = functions.loadSettings(tables)
-            for key, value in pairs(loadedSettings) do
-                settings[key] = value
-            end
-            updateSeedInventoryDropdown()
-            eggDropdown:SetValue(settings.selectedEggs)
-            eggDropdownPurchases:SetValue(settings.selectedEggs)
-            seedDropdown:SetValue(settings.selectedSeeds)
-            gearDropdown:SetValue(settings.selectedGears)
-            fruitDropdown:SetValue(settings.TargetFruits)
-            mutationDropdown:SetValue(settings.TargetMutations)
-            protectedFruitDropdown:SetValue(settings.ProtectedFruits)
-            protectedMutationDropdown:SetValue(settings.ProtectedMutations)
-            sprinklerDropdown:SetValue(settings.selectedSprinklers)
-            sellPetDropdown:SetValue(settings.SelectedSellPet or "All")
-            functions.sendNotification(services, "Settings loaded!", "#008000")
+    local function updateSeedInventoryPeriodically()
+        while true do
+            if settings.autoPlantActive then pcall(updateSeedInventoryDropdown) end
+            wait(15) -- Increased interval
         end
-    })
+    end
 
+    spawn(updateESP)
+    spawn(updateSeedInventoryPeriodically)
     updateSeedInventoryDropdown()
-    return Window
+
+    game:BindToClose(function()
+        functions.saveSettings(settings)
+    end)
 end
 
 return createUI
