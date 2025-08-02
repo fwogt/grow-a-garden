@@ -209,22 +209,22 @@ local function createUI(tables, functions, services, settings, coroutines, petDa
         end
     })
 
-    -- Replace TextBox with Input for sell pet delay
-    Tabs.PetsTab:Input({
-        Title = "Sell Pets Delay (min)",
-        Placeholder = "Enter delay in minutes (1-60)",
-        Text = tostring(settings.SellPetDelay),
-        Callback = function(value)
-            local num = tonumber(value)
-            if num and num >= 1 and num <= 60 then
-                settings.SellPetDelay = num
-                functions.saveSettings(settings)
-                functions.sendNotification(services, "Sell pet delay updated: " .. num .. " minutes", "#008000")
-            else
-                functions.sendNotification(services, "Invalid delay! Enter a number between 1 and 60.", "#b0171a")
-            end
+-- Replace TextBox with Input for sell pet delay
+Tabs.PetsTab:Input({
+    Title = "Sell Pets Delay (ms)",
+    Placeholder = "Enter delay in milliseconds",
+    Text = tostring(settings.SellPetDelay),  -- assuming the delay is already stored in milliseconds
+    Callback = function(value)
+        local num = tonumber(value)
+        if num then  -- Check if the input is a valid number
+            settings.SellPetDelay = num
+            functions.saveSettings(settings)
+            functions.sendNotification(services, "Sell pet delay updated: " .. num .. " milliseconds", "#008000")
+        else
+            functions.sendNotification(services, "Invalid input! Please enter a valid number.", "#b0171a")
         end
-    })
+    end
+})
 
     Tabs.PetsTab:Toggle({
         Title = "Auto Sell Pets",
