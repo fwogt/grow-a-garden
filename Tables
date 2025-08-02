@@ -1,18 +1,18 @@
--- Tables.lua
--- DEMONHUB Tables Module
--- Version: 1.0.4
+-- DEMONHUB Tables for Roblox Farming Game
+-- Version: 1.0.3
+local SCRIPT_VERSION = "1.0.3"
 
-local Tables = {
-    SCRIPT_VERSION = "1.0.4",
-    eggs = {
-        "Common Egg", "Uncommon Egg", "Rare Egg", "Mythical Egg", "Bug Egg", "Night Egg",
-        "Bee Egg", "Anti-Bee Egg", "Common Summer Egg", "Rare Summer Egg", "Paradise Egg",
-        "Oasis Egg", "Primal Egg", "Dinosaur Egg", "Zen Egg"
-    },
+return {
+    SCRIPT_VERSION = SCRIPT_VERSION,
     gears = {
         "Advanced Sprinkler", "Basic Sprinkler", "Cleaning Spray", "Favorite Tool", "Friendship pot",
         "Godly Sprinkler", "Harvest Tool", "Levelup Lollipop", "Magnifying Glass", "Master Sprinkler",
         "Medium Toy", "Medium Treat", "Recall Wrench", "Tanning Mirror", "Trowel", "Watering Can"
+    },
+    eggs = {
+        "Common Egg", "Uncommon Egg", "Rare Egg", "Mythical Egg", "Bug Egg", "Night Egg",
+        "Bee Egg", "Anti-Bee Egg", "Common Summer Egg", "Rare Summer Egg", "Paradise Egg",
+        "Oasis Egg", "Primal Egg", "Dinosaur Egg", "Zen Egg"
     },
     seedShopSeeds = {
         "Watermelon", "Tomato", "Sugar Apple", "Strawberry", "Pumpkin", "Pepper", "Orange Tulip",
@@ -42,11 +42,6 @@ local Tables = {
         "Soul Fruit", "Mega Mushroom", "Moon Blossom", "Hive Fruit", "Dragon Pepper", "Rosy Delight",
         "Traveler's Fruit", "Fossilight", "Elephant Ears", "Bone Blossom"
     },
-    sprinklerTypes = {
-        "Basic Sprinkler", "Advanced Sprinkler", "Master Sprinkler",
-        "Godly Sprinkler", "Honey Sprinkler", "Chocolate Sprinkler"
-    },
-    sellCoordinates = Vector3.new(86.39, 3.00, 0.23),
     Mutations = {
         Amber = 10, AncientAmber = 50, Aurora = 90, Bloodlit = 5, Burnt = 4,
         Celestial = 120, Ceramic = 30, Chakra = 15, Chilled = 2, Choc = 2,
@@ -59,61 +54,41 @@ local Tables = {
         Toxic = 12, Tranquil = 20, Twisted = 5, Verdant = 5, Voidtouched = 135,
         Wet = 2, Windstruck = 2, Wiltproof = 4, Zombified = 25, Corrupt = 10
     },
-    allPets = {
-        "Starfish", "Crab", "Seagul", "Bunny", "Dog", "Golden Lab", "Bee", "Shiba Inu",
-        "Maneki-Neko", "Flamingo", "Toucan", "Sea Turtle", "Orangutan", "Seal", "Honey Bee",
-        "Wasp", "Nihonzaru", "Grey Mouse", "Tarantula Hawk", "Kodoma", "Corrupted Kodoma",
-        "Caterpillar", "Snail", "Petal Bee", "Moth", "Scarlet Macaw", "Ostritch", "Peacock",
-        "Capybara", "Tanuki", "Tanchozuru", "Brown Mouse", "Giant Ant", "Praying Mantis",
-        "Red Giant Ant", "Squirrel", "Bear Bee", "Butterfly", "Pack Bee", "Mimic Octopus",
-        "Kappa", "Koi", "Raiju", "Red Fox", "Dragonfly", "Disco Bee", "Queen Bee", "Kitsune",
-        "Corrupted Kitsune", "Black Bunny", "Cat", "Chicken", "Deer", "Kiwi", "Hedgehog",
-        "Monkey", "Orange Tabby", "Pig", "Rooster", "Spotted Deer", "Cow", "Polar Bear",
-        "Sea Otter", "Silver Monkey", "Panda", "Blood Hedgehog", "Frog", "Mole", "Moon Cat",
-        "Bald Eagle", "Turtle", "Sand Snake", "Meerkat", "Parasaurolophus", "Iguanodon",
-        "Pachycephalosaurus", "Raptor", "Triceratops", "Stegosaurus", "Football", "Hamster",
-        "Chicken Zombie", "Firefly", "Owl", "Golden Bee", "Echo Frg", "Cooked Owl", "Blood Kiwi",
-        "Night Owl", "Hyacinth Macaw", "Axolotl", "Dilophosaurus", "Ankylosaurus", "Pterodactyl",
-        "Brontosaurus", "Blood Owl", "Raccoon", "Fennec Fox", "Spinosaurus", "T-Rex", "Red Dragon"
+    sprinklerTypes = {
+        "Basic Sprinkler", "Advanced Sprinkler", "Master Sprinkler",
+        "Godly Sprinkler", "Honey Sprinkler", "Chocolate Sprinkler"
     },
+    sellCoordinates = Vector3.new(86.48603057861328, 2.999999761581421, 0.5267857313156128),
     defaultSettings = {
         selectedPets = {},
         selectedEggs = {},
         selectedSeeds = {},
         selectedGears = {},
         selectedSprinklers = {},
-        selectedSeed = "Tomato",
-        autoMiddleActive = false,
-        autoHatchEggsActive = false,
-        autoPlantEggsActive = false,
-        autoBuyEggsActive = false,
-        autoBuySeedsActive = false,
-        autoBuyGearActive = false,
-        autoPlantActive = false,
-        autoHarvestActive = false,
-        autoSellActive = false,
-        autoSellPetsActive = false,
-        autoDeleteSprinklersActive = false,
-        fruitESPActive = false,
-        petCooldownESPActive = false,
-        antiIdleActive = false,
-        plantingMode = "Current Location",
-        savedPlantingLocation = nil,
-        EggHatchDelay = 0.5,
-        EggPlantDelay = 0.5,
-        PlantDelay = 0.1,
-        HarvestDelay = 0.1,
-        SellDelay = 5,
-        SellPetDelay = 5,
         TargetFruits = {},
         TargetMutations = {},
         MinimumWeight = 0,
-        ProtectedFruits = {},
-        ProtectedMutations = {},
-        SelectedSellPet = nil,
-        PetWeightThreshold = 0,
-        PetAgeThreshold = 0
+        HarvestDelay = 0.1,
+        PlantDelay = 0.5,
+        SellDelay = 1,
+        EggHatchDelay = 0.5,
+        EggPlantDelay = 0.5,
+        plantingMode = "Current Location",
+        savedPlantingLocation = nil,
+        selectedSeed = "Carrot",
+        selectedEggAction = "Hatch",
+        autoMiddleActive = false,
+        autoBuyGearActive = false,
+        autoBuyEggsActive = false,
+        autoBuySeedsActive = false,
+        autoHarvestActive = false,
+        autoPlantActive = false,
+        autoSellActive = false,
+        autoDeleteSprinklersActive = false,
+        autoHatchEggsActive = false,
+        autoPlantEggsActive = false,
+        fruitESPActive = false,
+        petCooldownESPActive = false,
+        antiIdleActive = true
     }
 }
-
-return Tables
